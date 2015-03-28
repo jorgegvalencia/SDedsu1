@@ -3,6 +3,7 @@
 #include "edsu_comun.h"
 
 int generar_evento(const char *tema, const char *valor) {
+	get_direccion_intermediario();
 	return 0;
 }
 
