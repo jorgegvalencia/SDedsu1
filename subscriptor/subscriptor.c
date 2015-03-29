@@ -8,20 +8,20 @@ bool init = false;
 int alta_subscripcion_tema(const char *tema) {
 	int socket;
 	int respuesta;
-	msg_suscriptor suscripcion;
+	msg suscripcion;
 
 	/* Comprobar que se ha iniciado al suscriptor */
 	if(!init){
 		return -1;
 	}
 	/* Crear mensaje de alta */
-	escribir_msg_suscriptor(ALTA,tema,&suscripcion);
+	escribir_msg(ALTA,tema,NULL,&suscripcion);
 
 	/* Abrir conexion */
 	socket = abrir_conexion_tcp();
 
 	/* Enviar la suscripcion al intermediario */
-	send(socket,&suscripcion,sizeof(msg_suscriptor),0);
+	send(socket,&suscripcion,sizeof(msg),0);
 
 	/* Esperar respuesta */
 	recv(socket,&respuesta,1,0);
@@ -42,20 +42,20 @@ int alta_subscripcion_tema(const char *tema) {
 int baja_subscripcion_tema(const char *tema) {
 	int socket;
 	int respuesta;
-	msg_suscriptor suscripcion;
+	msg suscripcion;
 
 	/* Comprobar que se ha iniciado al suscriptor */
 	if(!init){
 		return -1;
 	}
 	/* Crear mensaje de alta */
-	escribir_msg_suscriptor(BAJA,tema,&suscripcion);
+	escribir_msg(BAJA,tema,NULL,&suscripcion);
 
 	/* Abrir conexion */
 	socket = abrir_conexion_tcp();
 
 	/* Enviar la suscripcion al intermediario */
-	send(socket,&suscripcion,sizeof(msg_suscriptor),0);
+	send(socket,&suscripcion,sizeof(msg),0);
 
 	/* Esperar respuesta */
 	recv(socket,&respuesta,1,0);
@@ -76,6 +76,7 @@ int baja_subscripcion_tema(const char *tema) {
 int inicio_subscriptor(void (*notif_evento)(const char *, const char *),
                 void (*alta_tema)(const char *),
                 void (*baja_tema)(const char *)) {
+	init = true;
 	return 0;
 }
 

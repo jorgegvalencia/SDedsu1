@@ -5,18 +5,18 @@
 int generar_evento(const char *tema, const char *valor) {
 	int socket;
 	int respuesta;
-	msg_evento nuevo_evento;
+	msg nuevo_evento;
 	/* Crear evento */
-	escribir_msg_evento(tema,valor,&nuevo_evento);
+	escribir_msg(EVENTO,tema,valor,&nuevo_evento);
 
 	/* Abrir conexion */
 	socket = abrir_conexion_tcp();
 
 	/* Enviar el evento al intermediario */
-	send(socket,&nuevo_evento,sizeof(msg_evento),0);
+	send(socket,&nuevo_evento,sizeof(msg),0);
 
 	/* Esperar respuesta */
-	recv(socket,&respuesta,1,0);
+	recv(socket,&respuesta,sizeof(msg),0);
 	// if respuesta = -1 then return -1
 	if(respuesta < 0){
 	/* Cerrar conexion */
