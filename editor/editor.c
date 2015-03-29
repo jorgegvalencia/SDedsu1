@@ -6,11 +6,11 @@ int generar_evento(const char *tema, const char *valor) {
 	int socket;
 	int respuesta;
 	msg_evento nuevo_evento;
-	/* Abrir conexion */
-	socket = abrir_conexion_tcp();
-
 	/* Crear evento */
 	escribir_msg_evento(tema,valor,&nuevo_evento);
+
+	/* Abrir conexion */
+	socket = abrir_conexion_tcp();
 
 	/* Enviar el evento al intermediario */
 	send(socket,&nuevo_evento,sizeof(msg_evento),0);

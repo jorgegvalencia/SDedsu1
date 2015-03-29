@@ -27,3 +27,9 @@ void leer_msg_evento(msg_evento *evento /* E */, const char *tema, const char *v
 
 /* Método que escribe un mensaje de evento dados el tema y el valor */
 void escribir_msg_evento(const char *tema, const char *valor /* E */, msg_evento *evento /* S */);
+
+/* Método que lee mensaje de suscripcíon */
+void leer_msg_suscriptor(msg_suscriptor *suscripcion, int *cod_op, const char *tema);
+
+/* Metodo que escribe mensaje de suscripcion */
+void escribir_msg_suscriptor(int cod_op, const char *tema, msg_suscriptor *suscripcion);

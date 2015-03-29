@@ -18,3 +18,15 @@ void escribir_msg_evento(const char *tema, const char *valor /* E */, msg_evento
 	sprintf((char *)tema, "%s",evento->tema);
 	sprintf((char *)valor, "%s",evento->valor);
 }
+
+/* Método que lee mensaje de suscripcíon */
+void leer_msg_suscriptor(msg_suscriptor *suscripcion, int *cod_op, const char *tema){
+	*cod_op = suscripcion->cod_op;
+	sprintf(suscripcion->tema,"%s",(char *)tema);
+}
+
+/* Metodo que escribe mensaje de suscripcion */
+void escribir_msg_suscriptor(int cod_op, const char *tema, msg_suscriptor *suscripcion){
+	suscripcion->cod_op = cod_op;
+	sprintf((char *)suscripcion, "%s",suscripcion->tema);
+}
