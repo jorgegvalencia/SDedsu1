@@ -22,5 +22,5 @@ char *direccion; // direccion del intermediario
 struct hostent *hp;
 struct sockaddr_in tcp_interm_addr;
 
-void get_direccion_intermediario();
+int get_direccion_intermediario();
 int abrir_conexion_tcp();

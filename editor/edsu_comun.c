@@ -9,45 +9,59 @@
 int tcp_sd; // descriptor de fichero del socket TCP
 int port_tcp; // puerto TCP del intermediario
 char *direccion; // direccion del intermediario
-struct hostent *hp;
-struct sockaddr_in tcp_interm_addr;
+struct hostent *host;
+struct sockaddr_in tcp_addr_interm;
 
-void get_direccion_intermediario(){
+int get_direccion_intermediario(){
 	char * endp; //puntero para la cadena no valida
+	if(getenv("SERVIDOR") != NULL){
+		direccion=getenv("SERVIDOR");
+		host = gethostbyname(direccion);
+	}
+	else{
+		fprintf(stderr, "Direccion del intermediario no disponible\n");
+		return -1;
+	}
 	if(getenv("PUERTO") != NULL){
 		port_tcp=strtol(getenv("PUERTO"),&endp,10);
 	}
-	if(getenv("SERVIDOR") != NULL){
-		direccion=getenv("SERVIDOR");
+	else{
+		fprintf(stderr, "Puerto de servicio del intermediario no disponible\n");
+		return -1;
 	}
-	hp = gethostbyname(direccion);
+	return 0;
 }
 
 int abrir_conexion_tcp(){
 
+	if(get_direccion_intermediario() < 0){
+		fprintf(stderr, "No se ha podido resolver la direccion del intermediario\n");
+		exit(1);
+	}
+
 	/* Creacion del socket TCP de servicio */
 	tcp_sd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if(tcp_sd < 0){
-		fprintf(stderr,"SERVIDOR: Creacion del socket TCP: ERROR\n");
+		fprintf(stderr,"Creacion del socket TCP: ERROR\n");
 		exit(1);
 	}
 	else{
-		fprintf(stderr,"SERVIDOR: Creacion del socket TCP: OK\n");
+		fprintf(stderr,"Creacion del socket TCP: OK\n");
 	}
-	/* Nos conectamos al intermediario */
-	bzero((char *) &tcp_interm_addr, sizeof(tcp_interm_addr));  // Inicializar estructura
-	tcp_interm_addr.sin_family = AF_INET;
-	memcpy (&(tcp_interm_addr.sin_addr), hp->h_addr, hp->h_length); // tcp_interm_addr.sin_addr.s_addr = intermediario;
-	tcp_interm_addr.sin_port = htons(0);
+	bzero((char *) &tcp_addr_interm, sizeof(tcp_addr_interm));  // Inicializar estructura
 
-	if(connect(tcp_sd,
-		(struct sockaddr*)&tcp_interm_addr,
-		sizeof(struct sockaddr_in))<0)
+	/* Establecer parametros de la direccion TCP del intermediario */
+	tcp_addr_interm.sin_family = AF_INET;
+	memcpy (&(tcp_addr_interm.sin_addr), host->h_addr, host->h_length); // tcp_addr_interm.sin_addr.s_addr = intermediario;
+	tcp_addr_interm.sin_port = htons(port_tcp);
+
+	/* Nos conectamos al intermediario */
+	if(connect(tcp_sd,(struct sockaddr*) &tcp_addr_interm,sizeof(struct sockaddr_in))<0)
 	{
 		fprintf(stdout,"ERROR %d\n",errno);
-		close(tcp_sd); exit(1);
+		close(tcp_sd);
+		exit(1);
 	}
-	fprintf(stdout,"OK\n");
-
+	fprintf(stdout,"Conexion establecida\n");
 	return(tcp_sd);
 }
