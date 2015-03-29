@@ -39,9 +39,13 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Uso: %s puerto fichero_temas\n", argv[0]);
 		return 1;
 	}
-	port_tcp = *argv[1];
-	fichero_temas = fopen(argv[2], "r");
 
+	port_tcp = *argv[1];
+	if ((fichero_temas = fopen(argv[2], "r")) == NULL ){
+		fprintf(stderr,"Fichero de temas no disponible\n");
+		return -1;
+	}
+	
 	/* Leer fichero de temas y crear estructura de temas-subscriptores */
 	while (fgets(linea,MAX,fichero_temas)!= NULL){
 
