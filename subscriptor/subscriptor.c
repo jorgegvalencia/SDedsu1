@@ -1,6 +1,7 @@
-#include "subscriptor.h"
 #include "comun.h"
 #include "edsu_comun.h"
+#include "subscriptor.h"
+#include <pthread.h>
 #include <stdbool.h>
 
 bool init = false;
@@ -76,6 +77,8 @@ int baja_subscripcion_tema(const char *tema) {
 int inicio_subscriptor(void (*notif_evento)(const char *, const char *),
                 void (*alta_tema)(const char *),
                 void (*baja_tema)(const char *)) {
+	pthread_t thread_id;
+	pthread_create(&thread_id, NULL, (void *)notif_evento, NULL);
 	init = true;
 	return 0;
 }

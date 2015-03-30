@@ -35,7 +35,7 @@ int altaSubTopic(uint32_t subscriber, char* topic);
 /* Da de alta a un suscriptor al tema especificado */
 int bajaSubTopic(uint32_t subscriber, char* topic);
 /* Envia un evento a los suscriptores correspondientes */
-int push_notifications(char *topic);
+int push_notification(int tcp_sd, char *topic, char *valor);
 
 /* --------------- Variables ---------------- */
 
@@ -110,7 +110,7 @@ int getTopicId(char *topic){
 	}
 	return -1;
 }
-
+/* Da de alta a un suscriptor al tema especificado */
 int altaSubTopic(uint32_t subscriber, char *topic){
 	int id_topic;
 	int id_sub;
@@ -145,7 +145,7 @@ int altaSubTopic(uint32_t subscriber, char *topic){
 	n_sub_topic[id_topic]++;
 	return 0;
 }
-
+/* Da de alta a un suscriptor al tema especificado */
 int bajaSubTopic(uint32_t subscriber, char *topic){
 	int id_topic;
 	int id_sub;
@@ -198,6 +198,27 @@ int bajaSubTopic(uint32_t subscriber, char *topic){
 			deleted=true;
 		}
 	}
+	if(!deleted){
+		fprintf(stderr, "Error al dar de baja al suscriptor\n");
+		return -1;
+	}
+	return 0;
+}
+/* Envia un evento a los suscriptores correspondientes */
+int push_notification(int tcp_sd, char *topic, char *value){
+	int i;
+	int topic_id;
+	msg nuevo_evento;
+	if(!(topic_id = getTopicId(topic))){
+		fprintf(stderr, "Tema no valido\n");
+		return -1;
+	}
+	for(i=0;i<n_sub_topic[topic_id];i++){
+		/* Mandar evento a suscriptor i*/
+		escribir_msg(EVENTO,topic,value,&nuevo_evento);
+		/* Abrir conexion con nuevo socket tcp y puerto de notificaciones */
+		send(tcp_sd,&nuevo_evento,sizeof(msg),0);
+	}
 	return 0;
 }
 
@@ -206,6 +227,7 @@ int main(int argc, char *argv[]) {
 	/* Temas y suscriptores */
 	FILE * fichero_temas;
 	char linea[64];
+
 	n_subs=0;
 	n_topics=0;
 	suscriptores = malloc(sizeof(uint32_t));
@@ -238,7 +260,8 @@ int main(int argc, char *argv[]) {
 	
 	/* Leer fichero de temas y crear estructura de temas-subscriptores */
 	while (fgets(linea,MAX,fichero_temas)!= NULL){
-
+		addTopic(linea);
+		fprintf(stdout, "Añadido el tema <%s>\n", linea);
 	}
 	fclose(fichero_temas);
 
@@ -284,55 +307,41 @@ int main(int argc, char *argv[]) {
 		if((accept(tcp_sd, (struct sockaddr *) &tcp_addr_client, (socklen_t *)  &size)) < 0){
 			fprintf(stderr,"SERVIDOR: Llegada de un mensaje: ERROR\n");
 		}
-		else{
+		else{ // conexion correcta
 			fprintf(stderr,"SERVIDOR: Llegada de un mensaje: OK\n");
-			switch(fork()){
+			switch(fork()){ //cambiar por threads, necesita acceso a la misma estructura de datos
 				case -1:
-
-				fprintf(stderr,"SERVIDOR: Servicio no disponible\n");
-				exit(1);
-				/* -------------- Servidor dedicado ---------------- */
+					fprintf(stderr,"SERVIDOR: Servicio no disponible\n");
+					exit(1);
+					/* -------------- Servidor dedicado ---------------- */
 				case 0:
-
-				/* Recibir peticion */
-				recv(tcp_sd,&peticion,sizeof(msg),0);
-
-				/* Analizar peticion */
-				if(ntohl(peticion.cod_op)==ALTA){
-					sprintf(tema, "%s",peticion.tema);
+					/* Recibir peticion */
+					recv(tcp_sd,&peticion,sizeof(msg),0);
+					/* Analizar peticion */
+					if(ntohl(peticion.cod_op)==ALTA){
+					// sprintf(tema, "%s",peticion.tema);
+						respuesta=altaSubTopic(tcp_addr_client.sin_addr.s_addr, peticion.tema);
+					}
+					else if(ntohl(peticion.cod_op)==BAJA){
+					// sprintf(tema, "%s",peticion.tema);
+						respuesta=bajaSubTopic(tcp_addr_client.sin_addr.s_addr, peticion.tema);
+					}
+					else if(ntohl(peticion.cod_op)==EVENTO){
+						sprintf(tema, "%s",peticion.tema);
 					/* Comprobar si tema valido */
-
-					/* Comprobar si suscriptor dado ya de alta */
-
-					/* Añadir suscriptor a lista de interesados en el tema */
-					respuesta=0;
-				}
-				else if(ntohl(peticion.cod_op)==BAJA){
-					sprintf(tema, "%s",peticion.tema);
-					/* Comprobar si tema valido */
-
-					/* Comprobar si suscriptor dado ya de alta */
-
-					/* Eliminar suscriptor de la lista de interesados en el tema */
-					respuesta=0;
-				}
-				else if(ntohl(peticion.cod_op)==EVENTO){
-					sprintf(tema, "%s",peticion.tema);
-					/* Comprobar si tema valido */
-
-					sprintf(valor,"%s",peticion.valor);
-					respuesta=0;
+						sprintf(valor,"%s",peticion.valor);
 					/* Enviar notificacion a suscritos en el tema */
-				}
-				else{
-					fprintf(stderr, "Codigo de operacion desconocido\n");
-					return -1;
-				}
+						respuesta = push_notification(tcp_sd, peticion.tema, peticion.valor);
+					}
+					else{
+						fprintf(stderr, "Codigo de operacion desconocido\n");
+						return -1;
+					}
 
-				/* Enviar respuesta */
-				send(tcp_sd,&respuesta,1,0);
-				close(tcp_sd);
-				return 0;
+					/* Enviar respuesta */
+					send(tcp_sd,&respuesta,1,0);
+					close(tcp_sd);
+					return 0;
 				default:
 
 				continue;
