@@ -4,6 +4,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -13,15 +14,204 @@
 #include <unistd.h>
 #define MAX 65
 
-int push_notifications();
+/* ---------------- Prototipos de funciones ----------------*/
 
-void parse_args();
+/* Añade un suscriptor a la lista de suscriptores y devuelve su identificador o -1 si error */
+int addSub(uint32_t subscriber);
+/* Borra un suscriptor de la lista de suscriptores y devuelve 0 o -1 si error */
+int delSub(uint32_t subscriber);
+/* Devuelve el identificador de suscriptor, o -1 si no esta en la lista de suscriptores */
+int getSubId(uint32_t subscriber);
+
+/* Añade un tema a la lista de temas y devuelve su identificador o -1 si error */
+int addTopic(char *topic);
+/* Borra un tema de la lista de temas y devuelve 0 o -1 si error */
+int delTopic(char *topic);
+/* Devuelve el identificador de tema, o -1 si no esta en la lista de temas */
+int getTopicId(char *topic);
+
+/* Da de alta a un suscriptor al tema especificado */
+int altaSubTopic(uint32_t subscriber, char* topic);
+/* Da de alta a un suscriptor al tema especificado */
+int bajaSubTopic(uint32_t subscriber, char* topic);
+/* Envia un evento a los suscriptores correspondientes */
+int push_notifications(char *topic);
+
+/* --------------- Variables ---------------- */
+
+int n_subs;
+int n_topics;
+uint32_t * suscriptores; // suscriptores[1] = sub1 (en formato de red)
+char ** temas; // temas[1] = tema1
+int ** suscriptores_temas; // suscriptores_temas[tema][1] = sub1
+int * n_sub_topic; // n_sub_topic[tema] = numero de subs en el topic
+
+/* --------------- Funciones ----------------- */
+
+/* Añade un suscriptor a la lista de suscriptores y devuelve su identificador o -1 si error */
+int addSub(uint32_t subscriber){
+	/* Comprobar si suscriptor esta en la bbdd */
+	if(getSubId(subscriber)){
+		fprintf(stderr, "Suscriptor ya en la lista\n");
+		return -1;
+	}
+	/* Si no esta, añadirlo */
+	suscriptores = realloc(suscriptores,(n_subs+1)*sizeof(uint32_t));
+	if(suscriptores == NULL){
+		fprintf(stderr, "No se pudo ubicar la memoria dinamica necesaria\n");
+		return -1;
+	}
+	suscriptores[n_subs] = subscriber;
+	n_subs++;
+	return n_subs;
+}
+/* Devuelve el identificador de suscriptor, o -1 si no esta en la lista de suscriptores */
+int getSubId(uint32_t subscriber){
+	int i;
+	for(i=0; i<=n_subs; i++){
+		if(suscriptores[i] == subscriber){
+			return i;
+		}
+	}
+	return -1;
+}
+/* Añade un tema a la lista de temas y devuelve su identificador o -1 si error */
+int addTopic(char *topic){
+	/* Comprobar que el tema no esta en la bbdd */
+	if(getTopicId(topic)){
+		fprintf(stderr, "Tema ya en la lista\n");
+		return -1;
+	}
+	/* Si no esta, añadirlo */
+	temas = realloc(temas,(n_topics+1)*sizeof(char*));
+	if(temas == NULL){
+		fprintf(stderr, "No se pudo ubicar la memoria dinamica necesaria\n");
+		return -1;
+	}
+	temas[n_topics] = topic; //nuevo topic
+	
+	/* Inicializar numero de suscriptores al tema */
+	n_sub_topic = realloc(n_sub_topic,(n_topics+1)*sizeof(int));
+	if(n_sub_topic == NULL){
+		fprintf(stderr, "No se pudo ubicar la memoria dinamica necesaria\n");
+		return -1;
+	}
+	n_sub_topic[n_topics]=0; //0 subs en el topic
+	n_topics++;
+	return n_topics;
+}
+/* Devuelve el identificador de tema, o -1 si no esta en la lista de temas */
+int getTopicId(char *topic){
+	int i;
+	for(i=0; i<=n_topics; i++){
+		if(temas[i] == topic){
+			return i;
+		}
+	}
+	return -1;
+}
+
+int altaSubTopic(uint32_t subscriber, char *topic){
+	int id_topic;
+	int id_sub;
+	/* Existe el topic ? */
+	if(!(id_topic=getTopicId(topic))){
+		fprintf(stderr, "No existe el tema especificado\n");
+		return -1;
+	}
+	/* Comprobar subscriber */
+	if(!(id_sub=getSubId(subscriber))){
+	// si no esta, se añade
+		if(!(addSub(subscriber))){
+			fprintf(stderr, "No es posible añadir el suscriptor\n");
+			return -1;
+		}
+	}
+	/* Comprobar que no esta dado de alta */
+	int i;
+	for(i=0;i<n_sub_topic[id_topic];i++){
+		if((suscriptores_temas[id_topic][i]) == id_sub){
+			fprintf(stderr, "Suscriptor dado ya de alta\n");
+			return -1;
+		}
+	}
+	// dar de alta
+	suscriptores_temas[id_topic] = realloc(suscriptores_temas[id_topic],
+		(n_sub_topic[id_topic]+1)*sizeof(int));
+	if(suscriptores_temas[id_topic] == NULL){
+		fprintf(stderr, "No se pudo ubicar la memoria dinamica necesaria\n");
+		return -1;
+	}
+	n_sub_topic[id_topic]++;
+	return 0;
+}
+
+int bajaSubTopic(uint32_t subscriber, char *topic){
+	int id_topic;
+	int id_sub;
+	int id_last_sub;
+	int last_sub_pos;
+	/* Existe el topic ? */
+	if(!(id_topic=getTopicId(topic))){
+		fprintf(stderr, "No existe el tema especificado\n");
+		return -1;
+	}
+	/* Comprobar subscriber */
+	if(!(id_sub=getSubId(subscriber))){
+	// si no esta, se añade
+		if(!(addSub(subscriber))){
+			fprintf(stderr, "Error: No es posible añadir el suscriptor\n");
+			return -1;
+		}
+	}
+	/* Comprobar que esta dado de alta */
+	int i;
+	bool found = false;
+	for(i=0;i<n_sub_topic[id_topic] && !found;i++){
+		if((suscriptores_temas[id_topic][i]) == id_sub){
+			found = true;
+		}
+	}
+	if(!found){
+		fprintf(stderr,"El suscriptor no esta dado de alta en este tema\n");
+		return -1;
+	}
+
+	// dar de baja
+	last_sub_pos = n_sub_topic[id_topic];
+	id_last_sub = suscriptores_temas[id_topic][last_sub_pos];
+
+	bool deleted;
+	for(i=0;i<n_sub_topic[id_topic] && !deleted;i++){
+		if((suscriptores_temas[id_topic][i]) == id_sub){
+			// Determinar Id del ultimo suscrito al tema
+			suscriptores_temas[id_topic][i] = id_last_sub;
+			// Reubicar memoria dinamica
+			suscriptores_temas[id_topic] = realloc(suscriptores_temas[id_topic],
+				(n_sub_topic[id_topic]-1)*sizeof(int));
+			if(suscriptores_temas[id_topic] == NULL){
+				fprintf(stderr, "No se pudo ubicar la memoria dinamica necesaria\n");
+				return -1;
+			}
+			// Decrementar el numero de suscriptores
+			n_sub_topic[id_topic]--;
+			deleted=true;
+		}
+	}
+	return 0;
+}
 
 int main(int argc, char *argv[]) {
 
-	/* Temas */
+	/* Temas y suscriptores */
 	FILE * fichero_temas;
 	char linea[64];
+	n_subs=0;
+	n_topics=0;
+	suscriptores = malloc(sizeof(uint32_t));
+	temas = malloc(sizeof(char*));
+	suscriptores_temas = malloc(sizeof(int**));
+	n_sub_topic = malloc(sizeof(int));
 
 	/* Conexion TCP */
 	int tcp_sd, port_tcp;
