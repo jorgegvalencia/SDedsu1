@@ -73,7 +73,6 @@ int baja_subscripcion_tema(const char *tema) {
 		return 0;
 	}
 }
-
 int inicio_subscriptor(void (*notif_evento)(const char *, const char *),
                 void (*alta_tema)(const char *),
                 void (*baja_tema)(const char *)) {
@@ -81,6 +80,10 @@ int inicio_subscriptor(void (*notif_evento)(const char *, const char *),
 	pthread_create(&thread_id, NULL, (void *)notif_evento, NULL);
 	init = true;
 	return 0;
+}
+
+void atender_notificaciones(){
+
 }
 
 /* Avanzada */
