@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 bool init = false;
+void * func_notif;
 
 int alta_subscripcion_tema(const char *tema) {
 	int socket;
@@ -19,7 +20,7 @@ int alta_subscripcion_tema(const char *tema) {
 	escribir_msg(ALTA,tema,NULL,&suscripcion);
 
 	/* Abrir conexion */
-	socket = abrir_conexion_tcp();
+	socket = abrir_conexion_tcp(0);
 
 	/* Enviar la suscripcion al intermediario */
 	send(socket,&suscripcion,sizeof(msg),0);
@@ -53,7 +54,7 @@ int baja_subscripcion_tema(const char *tema) {
 	escribir_msg(BAJA,tema,NULL,&suscripcion);
 
 	/* Abrir conexion */
-	socket = abrir_conexion_tcp();
+	socket = abrir_conexion_tcp(0);
 
 	/* Enviar la suscripcion al intermediario */
 	send(socket,&suscripcion,sizeof(msg),0);
@@ -84,6 +85,7 @@ int inicio_subscriptor(void (*notif_evento)(const char *, const char *),
 
 void atender_notificaciones(){
 
+	abrir_conexion_tcp(66666);
 }
 
 /* Avanzada */

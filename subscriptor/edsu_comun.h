@@ -16,11 +16,7 @@
 #include <fcntl.h>   
 #include <errno.h>
 
-int tcp_sd; // descriptor de fichero del socket TCP
-int port_tcp; // puerto TCP del intermediario
-char *direccion; // direccion del intermediario
-struct hostent *hp;
-struct sockaddr_in tcp_interm_addr;
+char *intermediario;
 
-int get_direccion_intermediario();
-int abrir_conexion_tcp();
+int get_info_intermediario(int *port_tcp, char *direccion);
+int abrir_conexion_tcp(int puerto);

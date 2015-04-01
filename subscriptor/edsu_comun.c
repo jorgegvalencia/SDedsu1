@@ -6,24 +6,19 @@
 
 #include "edsu_comun.h"
 
-int tcp_sd; // descriptor de fichero del socket TCP
-int port_tcp; // puerto TCP del intermediario
-char *direccion; // direccion del intermediario
-struct hostent *host;
-struct sockaddr_in tcp_addr_interm;
+char * intermediario;
 
-int get_direccion_intermediario(){
+int get_info_intermediario(int *port_tcp, char *direccion){
 	char * endp; //puntero para la cadena no valida
 	if(getenv("SERVIDOR") != NULL){
 		direccion=getenv("SERVIDOR");
-		host = gethostbyname(direccion);
 	}
 	else{
 		fprintf(stderr, "Direccion del intermediario no disponible\n");
 		return -1;
 	}
 	if(getenv("PUERTO") != NULL){
-		port_tcp=strtol(getenv("PUERTO"),&endp,10);
+		*port_tcp=strtol(getenv("PUERTO"),&endp,10);
 	}
 	else{
 		fprintf(stderr, "Puerto de servicio del intermediario no disponible\n");
@@ -32,18 +27,28 @@ int get_direccion_intermediario(){
 	return 0;
 }
 
-int abrir_conexion_tcp(){
+int abrir_conexion_tcp(int puerto){
+	int port_tcp;
+	int tcp_sd; // descriptor de fichero del socket TCP
+	struct sockaddr_in tcp_addr_interm;
+	struct hostent *host;
 
-	if(get_direccion_intermediario() < 0){
-		fprintf(stderr, "No se ha podido resolver la direccion del intermediario\n");
-		exit(1);
+	if((get_info_intermediario(&port_tcp,intermediario)) < 0){
+		fprintf(stderr, "Error al obtener la direccion de intermediario\n");
+		return -1;
 	}
+	if(puerto != 0){
+		port_tcp = puerto;
+	}
+
+	host = gethostbyname(intermediario);
+	//inet_ntoa
 
 	/* Creacion del socket TCP de servicio */
 	tcp_sd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if(tcp_sd < 0){
 		fprintf(stderr,"Creacion del socket TCP: ERROR\n");
-		exit(1);
+		return -1;
 	}
 	else{
 		fprintf(stderr,"Creacion del socket TCP: OK\n");
@@ -60,8 +65,8 @@ int abrir_conexion_tcp(){
 	{
 		fprintf(stdout,"ERROR %d\n",errno);
 		close(tcp_sd);
-		exit(1);
+		return -1;
 	}
 	fprintf(stdout,"Conexion establecida\n");
-	return(tcp_sd);
+	return tcp_sd;
 }
