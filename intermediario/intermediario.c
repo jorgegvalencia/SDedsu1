@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <strings.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -39,97 +40,122 @@ int push_notification(int tcp_sd, char *topic, char *valor);
 
 /* --------------- Variables ---------------- */
 
-int service_port;
-int n_subs;
-int n_topics;
-uint32_t * suscriptores; // suscriptores[1] = sub1 (en formato de red)
-char ** temas; // temas[1] = tema1
-int ** suscriptores_temas; // suscriptores_temas[tema][1] = sub1
-int * n_sub_topic; // n_sub_topic[tema] = numero de subs en el topic
+typedef struct entrada_tema{
+	int id;
+	char tema[64];
+} EntradaTema;
 
-/* --------------- Funciones ----------------- */
+typedef struct entrada_sub{
+	int id;
+	uint32_t sub;
+} EntradaSub;
+
+int service_port;
+
+int n_subs; // numero de suscriptores totales
+int n_topics; // numero de temas totales
+int * n_sub_topic; // numero de suscriptores por cada tema
+int ** suscriptores_temas;
+EntradaTema * temas;
+EntradaSub * suscriptores;
+
+void printTemas(){
+	int i;
+	printf("| TopicId \t| Topic \t\t| \n");
+	for(i=0; i<n_topics; i++){
+		printf("| %d \t\t| %s \t\t|\n", temas[i].id, temas[i].tema);
+	}
+}
+
+/* Devuelve el identificador de tema, o -1 si no esta en la lista de temas */
+int getTopicId(char *topic){
+	bool found = false;
+	int topic_id = -1;
+
+	int i;
+	for(i=0; i<n_topics && !found; i++){
+		// printf("%s\n", temas[i].tema);
+		if(strcmp(temas[i].tema,topic) == 0){
+			found = true;
+			topic_id = temas[i].id;
+		}
+	}
+	return topic_id;
+}
+
+/* Añade un tema a la lista de temas y devuelve su identificador o -1 si error */
+int addTopic(char *topic){
+	if((getTopicId(topic)) != -1){
+		printf("Tema ya existe\n");
+		return -1;
+	}
+	int id_topic = n_topics;
+	EntradaTema new_entrada;
+	new_entrada.id = id_topic;
+	strcpy(new_entrada.tema,topic);
+	temas[n_topics] = new_entrada;
+
+	n_topics++;
+	temas = realloc(temas,(n_topics+1)*sizeof(struct entrada_tema));
+	if(temas == NULL){
+		fprintf(stderr, "No se pudo ubicar la memoria dinamica necesaria\n");
+		return -1;
+	}
+	return id_topic;
+}
+
+/* Devuelve el identificador de suscriptor, o -1 si no esta en la lista de suscriptores */
+int getSubId(uint32_t subscriber){
+	int i;
+	bool found;
+	int sub_id = -1;
+	for(i=0; i<n_subs && !found; i++){
+		if(suscriptores[i].sub == subscriber){
+			found = true;
+			sub_id = i;
+		}
+	}
+	return sub_id;
+}
 
 /* Añade un suscriptor a la lista de suscriptores y devuelve su identificador o -1 si error */
 int addSub(uint32_t subscriber){
 	/* Comprobar si suscriptor esta en la bbdd */
-	if(getSubId(subscriber)){
+	if((getSubId(subscriber)) != -1){
 		fprintf(stderr, "Suscriptor ya en la lista\n");
 		return -1;
 	}
+	int id_sub = n_subs;
+	EntradaSub new_entrada;
+	new_entrada.id = id_sub;
+	new_entrada.sub = subscriber;
+	suscriptores[n_subs] = new_entrada;
 	/* Si no esta, añadirlo */
+	n_subs++;
 	suscriptores = realloc(suscriptores,(n_subs+1)*sizeof(uint32_t));
 	if(suscriptores == NULL){
 		fprintf(stderr, "No se pudo ubicar la memoria dinamica necesaria\n");
 		return -1;
 	}
-	suscriptores[n_subs] = subscriber;
-	n_subs++;
-	return n_subs;
-}
-/* Devuelve el identificador de suscriptor, o -1 si no esta en la lista de suscriptores */
-int getSubId(uint32_t subscriber){
-	int i;
-	bool found;
-	int id = -1;
-	for(i=0; i<=n_subs && !found; i++){
-		if(suscriptores[i] == subscriber){
-			found = true;
-			id = i;
-		}
-	}
-	return id;
-}
-/* Añade un tema a la lista de temas y devuelve su identificador o -1 si error */
-int addTopic(char *topic){
-	/* Comprobar que el tema no esta en la bbdd */
-	if(getTopicId(topic)){
-		fprintf(stderr, "Tema ya en la lista\n");
-		return -1;
-	}
-	/* Si no esta, añadirlo */
-	temas = realloc(temas,(n_topics+1)*sizeof(char*));
-	if(temas == NULL){
-		fprintf(stderr, "No se pudo ubicar la memoria dinamica necesaria\n");
-		return -1;
-	}
-	temas[n_topics] = topic; //nuevo topic
 	
-	/* Inicializar numero de suscriptores al tema */
-	n_sub_topic = realloc(n_sub_topic,(n_topics+1)*sizeof(int));
-	if(n_sub_topic == NULL){
-		fprintf(stderr, "No se pudo ubicar la memoria dinamica necesaria\n");
-		return -1;
-	}
-	n_sub_topic[n_topics]=0; //0 subs en el topic
-	n_topics++;
-	return n_topics;
+	return id_sub;
 }
-/* Devuelve el identificador de tema, o -1 si no esta en la lista de temas */
-int getTopicId(char *topic){
-	int i;
-	bool found = false;
-	int id = -1;
-	for(i=0; i<=n_topics && !found; i++){
-		if(temas[i] == topic){
-			found = true;
-			id = i;
-		}
-	}
-	return id;
-}
+
 /* Da de alta a un suscriptor al tema especificado */
 int altaSubTopic(uint32_t subscriber, char *topic){
 	int id_topic;
 	int id_sub;
 	/* Existe el topic ? */
-	if(!(id_topic=getTopicId(topic))){
+	id_topic=getTopicId(topic);
+	if(id_topic != -1){
 		fprintf(stderr, "No existe el tema especificado\n");
 		return -1;
 	}
 	/* Comprobar subscriber */
-	if(!(id_sub=getSubId(subscriber))){
+	id_sub=getSubId(subscriber);
+	if(id_sub != -1){
 	// si no esta, se añade
-		if(!(addSub(subscriber))){
+		if((addSub(subscriber)) == -1){
 			fprintf(stderr, "No es posible añadir el suscriptor\n");
 			return -1;
 		}
@@ -159,14 +185,16 @@ int bajaSubTopic(uint32_t subscriber, char *topic){
 	int id_last_sub;
 	int last_sub_pos;
 	/* Existe el topic ? */
-	if(!(id_topic=getTopicId(topic))){
+	id_topic=getTopicId(topic);
+	if(id_topic != -1){
 		fprintf(stderr, "No existe el tema especificado\n");
 		return -1;
 	}
 	/* Comprobar subscriber */
-	if(!(id_sub=getSubId(subscriber))){
+	id_sub=getSubId(subscriber);
+	if(id_sub != -1){
 	// si no esta, se añade
-		if(!(addSub(subscriber))){
+		if((addSub(subscriber)) == -1){
 			fprintf(stderr, "Error: No es posible añadir el suscriptor\n");
 			return -1;
 		}
@@ -230,7 +258,7 @@ int push_notification(int tcp_sd, char *topic, char *value){
 		/* Establecer parametros de la direccion TCP del intermediario */
 		tcp_addr_client.sin_family = AF_INET;
 		tcp_addr_client.sin_port = htons(service_port);
-		tcp_addr_client.sin_addr.s_addr = suscriptores[sub_id]; // tcp_addr_interm.sin_addr.s_addr = intermediario;
+		tcp_addr_client.sin_addr.s_addr = suscriptores[sub_id].sub; // tcp_addr_interm.sin_addr.s_addr = intermediario;
 		/* Nos conectamos al intermediario */
 		if(connect(tcp_sd,(struct sockaddr*) &tcp_addr_client,sizeof(struct sockaddr_in))<0)
 		{
@@ -252,12 +280,13 @@ int main(int argc, char *argv[]) {
 	FILE * fichero_temas;
 	char linea[64];
 
-	n_subs=0;
-	n_topics=0;
-	suscriptores = malloc(sizeof(uint32_t));
-	temas = malloc(sizeof(char*));
-	suscriptores_temas = malloc(sizeof(int**));
-	n_sub_topic = malloc(sizeof(int));
+	n_subs = 0;
+	n_topics = 0;
+
+	n_sub_topic = (int*) malloc(sizeof(int));
+	suscriptores_temas = (int**)malloc(sizeof(int*));
+	temas = malloc(sizeof(struct entrada_tema));
+	suscriptores = (EntradaSub*) malloc(sizeof(EntradaSub));
 
 	/* Conexion TCP */
 	int tcp_sd;
@@ -285,8 +314,11 @@ int main(int argc, char *argv[]) {
 	
 	/* Leer fichero de temas y crear estructura de temas-subscriptores */
 	while (fgets(linea,MAX,fichero_temas)!= NULL){
+		char *c = strchr(linea, '\n');
+		if (c)
+			*c = 0;
 		addTopic(linea);
-		fprintf(stdout, "Añadido el tema <%s>\n", linea);
+		printTemas();
 	}
 	fclose(fichero_temas);
 
@@ -295,11 +327,11 @@ int main(int argc, char *argv[]) {
 	/* Creacion del socket TCP de servicio */
 	tcp_sd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if(tcp_sd < 0){
-		fprintf(stderr,"SERVIDOR: Creacion del socket TCP: ERROR\n");
+		fprintf(stderr,"INTERMEDIARIO: Creacion del socket TCP: ERROR\n");
 		return -1;
 	}
 	else{
-		fprintf(stderr,"SERVIDOR: Creacion del socket TCP: OK\n");
+		fprintf(stderr,"INTERMEDIARIO: Creacion del socket TCP: OK\n");
 	}
 
   	/* Asignacion de la direccion local (del servidor) Puerto TCP*/    
@@ -310,18 +342,18 @@ int main(int argc, char *argv[]) {
 	tcp_addr_interm.sin_port = htons(service_port);
 
 	if(bind(tcp_sd, (struct sockaddr *) &tcp_addr_interm, sizeof(tcp_addr_interm)) < 0){
-		fprintf(stderr,"SERVIDOR: Asignacion del puerto servidor: ERROR\n");
+		fprintf(stderr,"INTERMEDIARIO: Asignacion del puerto servidor: ERROR\n");
 		close(tcp_sd);
 		return -1;
 	}
 
   	/* Aceptamos conexiones por el socket */
 	if(listen(tcp_sd,5)<0){
-		fprintf(stderr,"SERVIDOR: Aceptacion de peticiones: ERROR\n");
+		fprintf(stderr,"INTERMEDIARIO: Aceptacion de peticiones: ERROR\n");
 		return -1;
 	}
 	else{
-		fprintf(stderr,"SERVIDOR: Aceptacion de peticiones: OK\n");
+		fprintf(stderr,"INTERMEDIARIO: Aceptacion de peticiones: OK\n");
 	}
 
 	/* Recibir mensajes de alta, baja o evento */
@@ -330,13 +362,13 @@ int main(int argc, char *argv[]) {
 		bzero((char *) &tcp_addr_client, sizeof(tcp_addr_client));
 		size = sizeof(tcp_addr_client);
 		if((accept(tcp_sd, (struct sockaddr *) &tcp_addr_client, (socklen_t *)  &size)) < 0){
-			fprintf(stderr,"SERVIDOR: Llegada de un mensaje: ERROR\n");
+			fprintf(stderr,"INTERMEDIARIO: Llegada de un mensaje: ERROR\n");
 		}
 		else{ // conexion correcta
-			fprintf(stderr,"SERVIDOR: Llegada de un mensaje: OK\n");
+			fprintf(stderr,"INTERMEDIARIO: Llegada de un mensaje: OK\n");
 			switch(fork()){ //cambiar por threads, necesita acceso a la misma estructura de datos
 				case -1:
-					fprintf(stderr,"SERVIDOR: Servicio no disponible\n");
+					fprintf(stderr,"INTERMEDIARIO: Servicio no disponible\n");
 					return -1;
 					/* -------------- Servidor dedicado ---------------- */
 				case 0:
@@ -357,11 +389,11 @@ int main(int argc, char *argv[]) {
 
 						tcp_sr = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 						if(tcp_sr < 0){
-							fprintf(stderr,"SERVIDOR: Creacion del socket TCP: ERROR\n");
+							fprintf(stderr,"INTERMEDIARIO: Creacion del socket TCP: ERROR\n");
 							return -1;
 						}
 						else{
-							fprintf(stderr,"SERVIDOR: Creacion del socket TCP: OK\n");
+							fprintf(stderr,"INTERMEDIARIO: Creacion del socket TCP: OK\n");
 						}
 
 						/* Enviar notificacion a suscritos en el tema */
@@ -382,6 +414,10 @@ int main(int argc, char *argv[]) {
 				continue;
 			}
 		}
+		free(n_sub_topic);
+		free(temas);
+		free(suscriptores);
+		free(suscriptores_temas);
 		return 0;
 	}
 }

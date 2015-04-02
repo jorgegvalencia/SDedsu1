@@ -15,10 +15,12 @@ int generar_evento(const char *tema, const char *valor) {
 		return -1;
 	}
 
+	printf("Socket: %d\n", socket);
+
 	/* Enviar el evento al intermediario */
-	send(socket,&nuevo_evento,sizeof(msg),0);
+	send(socket,&nuevo_evento,sizeof(struct mensaje),0);
 	/* Esperar respuesta */
-	recv(socket,&respuesta,sizeof(msg),0);
+	recv(socket,&respuesta,sizeof(struct mensaje),0);
 	// if respuesta = -1 then return -1
 	if(respuesta < 0){
 	/* Cerrar conexion */
