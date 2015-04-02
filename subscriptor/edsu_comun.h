@@ -16,7 +16,6 @@
 #include <fcntl.h>   
 #include <errno.h>
 
-char *intermediario;
-
-int get_info_intermediario(int *port_tcp, char *direccion);
+int get_puerto(int *port_tcp);
+int get_info_intermediario(int *port_tcp, char **direccion);
 int abrir_conexion_tcp(int puerto);

@@ -11,10 +11,12 @@ int generar_evento(const char *tema, const char *valor) {
 
 	/* Abrir conexion */
 	socket = abrir_conexion_tcp(0);
+	if(socket < 0){
+		return -1;
+	}
 
 	/* Enviar el evento al intermediario */
 	send(socket,&nuevo_evento,sizeof(msg),0);
-
 	/* Esperar respuesta */
 	recv(socket,&respuesta,sizeof(msg),0);
 	// if respuesta = -1 then return -1

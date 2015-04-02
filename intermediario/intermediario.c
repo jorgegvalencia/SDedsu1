@@ -39,6 +39,7 @@ int push_notification(int tcp_sd, char *topic, char *valor);
 
 /* --------------- Variables ---------------- */
 
+int service_port;
 int n_subs;
 int n_topics;
 uint32_t * suscriptores; // suscriptores[1] = sub1 (en formato de red)
@@ -68,12 +69,15 @@ int addSub(uint32_t subscriber){
 /* Devuelve el identificador de suscriptor, o -1 si no esta en la lista de suscriptores */
 int getSubId(uint32_t subscriber){
 	int i;
-	for(i=0; i<=n_subs; i++){
+	bool found;
+	int id = -1;
+	for(i=0; i<=n_subs && !found; i++){
 		if(suscriptores[i] == subscriber){
-			return i;
+			found = true;
+			id = i;
 		}
 	}
-	return -1;
+	return id;
 }
 /* Añade un tema a la lista de temas y devuelve su identificador o -1 si error */
 int addTopic(char *topic){
@@ -103,12 +107,15 @@ int addTopic(char *topic){
 /* Devuelve el identificador de tema, o -1 si no esta en la lista de temas */
 int getTopicId(char *topic){
 	int i;
-	for(i=0; i<=n_topics; i++){
+	bool found = false;
+	int id = -1;
+	for(i=0; i<=n_topics && !found; i++){
 		if(temas[i] == topic){
-			return i;
+			found = true;
+			id = i;
 		}
 	}
-	return -1;
+	return id;
 }
 /* Da de alta a un suscriptor al tema especificado */
 int altaSubTopic(uint32_t subscriber, char *topic){
@@ -208,12 +215,29 @@ int bajaSubTopic(uint32_t subscriber, char *topic){
 int push_notification(int tcp_sd, char *topic, char *value){
 	int i;
 	int topic_id;
+	int sub_id;
+	struct sockaddr_in tcp_addr_client;
 	msg nuevo_evento;
 	if(!(topic_id = getTopicId(topic))){
 		fprintf(stderr, "Tema no valido\n");
 		return -1;
 	}
+	escribir_msg(EVENTO,topic,value,&nuevo_evento);
+
 	for(i=0;i<n_sub_topic[topic_id];i++){
+		sub_id = suscriptores_temas[topic_id][i];
+		bzero((char *) &tcp_addr_client, sizeof(tcp_addr_client));  // Inicializar estructura
+		/* Establecer parametros de la direccion TCP del intermediario */
+		tcp_addr_client.sin_family = AF_INET;
+		tcp_addr_client.sin_port = htons(service_port);
+		tcp_addr_client.sin_addr.s_addr = suscriptores[sub_id]; // tcp_addr_interm.sin_addr.s_addr = intermediario;
+		/* Nos conectamos al intermediario */
+		if(connect(tcp_sd,(struct sockaddr*) &tcp_addr_client,sizeof(struct sockaddr_in))<0)
+		{
+			fprintf(stdout,"ERROR al conectar\n");
+			close(tcp_sd);
+			return -1;
+		}
 		/* Mandar evento a suscriptor i*/
 		escribir_msg(EVENTO,topic,value,&nuevo_evento);
 		/* Abrir conexion con nuevo socket tcp y puerto de notificaciones */
@@ -236,7 +260,8 @@ int main(int argc, char *argv[]) {
 	n_sub_topic = malloc(sizeof(int));
 
 	/* Conexion TCP */
-	int tcp_sd, port_tcp;
+	int tcp_sd;
+	int tcp_sr;
 	int size;
 	struct sockaddr_in tcp_addr_interm, tcp_addr_client;
 	msg peticion;
@@ -252,7 +277,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	port_tcp = *argv[1];
+	service_port = *argv[1];
 	if ((fichero_temas = fopen(argv[2], "r")) == NULL ){
 		fprintf(stderr,"Fichero de temas no disponible\n");
 		return -1;
@@ -271,7 +296,7 @@ int main(int argc, char *argv[]) {
 	tcp_sd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if(tcp_sd < 0){
 		fprintf(stderr,"SERVIDOR: Creacion del socket TCP: ERROR\n");
-		exit(1);
+		return -1;
 	}
 	else{
 		fprintf(stderr,"SERVIDOR: Creacion del socket TCP: OK\n");
@@ -282,18 +307,18 @@ int main(int argc, char *argv[]) {
 
 	tcp_addr_interm.sin_family = AF_INET;
 	tcp_addr_interm.sin_addr.s_addr = INADDR_ANY;
-	tcp_addr_interm.sin_port = htons(port_tcp);
+	tcp_addr_interm.sin_port = htons(service_port);
 
 	if(bind(tcp_sd, (struct sockaddr *) &tcp_addr_interm, sizeof(tcp_addr_interm)) < 0){
 		fprintf(stderr,"SERVIDOR: Asignacion del puerto servidor: ERROR\n");
 		close(tcp_sd);
-		exit(1);
+		return -1;
 	}
 
   	/* Aceptamos conexiones por el socket */
 	if(listen(tcp_sd,5)<0){
 		fprintf(stderr,"SERVIDOR: Aceptacion de peticiones: ERROR\n");
-		exit(1);
+		return -1;
 	}
 	else{
 		fprintf(stderr,"SERVIDOR: Aceptacion de peticiones: OK\n");
@@ -312,26 +337,36 @@ int main(int argc, char *argv[]) {
 			switch(fork()){ //cambiar por threads, necesita acceso a la misma estructura de datos
 				case -1:
 					fprintf(stderr,"SERVIDOR: Servicio no disponible\n");
-					exit(1);
+					return -1;
 					/* -------------- Servidor dedicado ---------------- */
 				case 0:
 					/* Recibir peticion */
 					recv(tcp_sd,&peticion,sizeof(msg),0);
 					/* Analizar peticion */
 					if(ntohl(peticion.cod_op)==ALTA){
-					// sprintf(tema, "%s",peticion.tema);
+						// sprintf(tema, "%s",peticion.tema);
 						respuesta=altaSubTopic(tcp_addr_client.sin_addr.s_addr, peticion.tema);
 					}
 					else if(ntohl(peticion.cod_op)==BAJA){
-					// sprintf(tema, "%s",peticion.tema);
+						// sprintf(tema, "%s",peticion.tema);
 						respuesta=bajaSubTopic(tcp_addr_client.sin_addr.s_addr, peticion.tema);
 					}
 					else if(ntohl(peticion.cod_op)==EVENTO){
 						sprintf(tema, "%s",peticion.tema);
-					/* Comprobar si tema valido */
 						sprintf(valor,"%s",peticion.valor);
-					/* Enviar notificacion a suscritos en el tema */
-						respuesta = push_notification(tcp_sd, peticion.tema, peticion.valor);
+
+						tcp_sr = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+						if(tcp_sr < 0){
+							fprintf(stderr,"SERVIDOR: Creacion del socket TCP: ERROR\n");
+							return -1;
+						}
+						else{
+							fprintf(stderr,"SERVIDOR: Creacion del socket TCP: OK\n");
+						}
+
+						/* Enviar notificacion a suscritos en el tema */
+						respuesta = push_notification(tcp_sr, peticion.tema, peticion.valor);
+						close(tcp_sr);
 					}
 					else{
 						fprintf(stderr, "Codigo de operacion desconocido\n");
