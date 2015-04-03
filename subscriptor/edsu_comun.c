@@ -71,6 +71,7 @@ int abrir_conexion_tcp(int puerto){
 
 	/* Establecer parametros de la direccion TCP del intermediario */
 	tcp_addr_interm.sin_family = AF_INET;
+	// tcp_addr_interm.sin_addr.s_addr = inet_addr("127.0.0.1");
 	memcpy (&(tcp_addr_interm.sin_addr), host->h_addr, host->h_length); // tcp_addr_interm.sin_addr.s_addr = intermediario;
 	tcp_addr_interm.sin_port = htons(port_tcp);
 
