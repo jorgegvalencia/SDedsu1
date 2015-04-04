@@ -65,9 +65,9 @@ int abrir_conexion_tcp(int puerto){
 		fprintf(stderr,"Creacion del socket TCP: ERROR\n");
 		return -1;
 	}
-	else{
-		fprintf(stderr,"Creacion del socket TCP: OK\n");
-	}
+	// else{
+	// 	fprintf(stderr,"Creacion del socket TCP: OK\n");
+	// }
 	bzero((char *) &tcp_addr_interm, sizeof(tcp_addr_interm));  // Inicializar estructura
 
 	/* Establecer parametros de la direccion TCP del intermediario */
@@ -83,6 +83,6 @@ int abrir_conexion_tcp(int puerto){
 		close(tcp_sd);
 		return -1;
 	}
-	fprintf(stdout,"Conexion establecida\n");
+	// fprintf(stdout,"Conexion establecida\n");
 	return tcp_sd;
 }

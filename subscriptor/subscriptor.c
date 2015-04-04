@@ -35,7 +35,7 @@ int alta_subscripcion_tema(const char *tema) {
 	// if respuesta = -1 then return -1
 	if(respuesta < 0){
 	/* Cerrar conexion */
-		printf("Error al dar de alta\n");
+		// printf("Error al dar de alta\n");
 		close(socket);
 		return -1;
 	}
@@ -72,7 +72,7 @@ int baja_subscripcion_tema(const char *tema) {
 	// if respuesta = -1 then return -1
 	if(respuesta < 0){
 	/* Cerrar conexion */
-		printf("Error al dar de baja\n");
+		// printf("Error al dar de baja\n");
 		close(socket);
 		return -1;
 	}
@@ -132,7 +132,7 @@ int atender_notificaciones(){
 	int sa_len = sizeof(addr_tcp);
 	getsockname(socket_notif, (struct sockaddr *) &addr_tcp, (socklen_t *) &sa_len);
 	puerto_oyente = ntohs(addr_tcp.sin_port);
-	printf("Puerto oyente: %d\n", puerto_oyente);
+	// printf("Puerto oyente: %d\n", puerto_oyente);
 
 	// fprintf(stderr,"SUSCRIPTOR: Asignacion del puerto para esuchar notificaciones: OK\n");
   	/* Aceptamos conexiones por el socket */

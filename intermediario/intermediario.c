@@ -379,15 +379,18 @@ int bajaSubTopic(char *subscriber, int port, char *topic){
 	}
 
 	// dar de baja
-	id_topic_last = suscriptores_temas[n_suscripciones].id_topic;
-	id_sub_last = suscriptores_temas[n_suscripciones].id_sub;
 
 	bool deleted;
 	int i;
 	for(i=0; i<n_suscripciones && !deleted; i++){
 		if(suscriptores_temas[i].id_sub == id_sub){
 			if(suscriptores_temas[i].id_topic == id_topic){
-				if(i != n_suscripciones){ // si la entrada NO es la última
+				if(i != n_suscripciones && i < 2){ // si la entrada NO es la última
+					id_topic_last = suscriptores_temas[n_suscripciones-1].id_topic;
+					id_sub_last = suscriptores_temas[n_suscripciones-1].id_sub;
+					// printf("Sustituyendo suscriptores_temas[%d] por suscriptores_temas[%d]\n", i, n_suscripciones);
+					// printf("id_topic_last: %d\n", id_topic_last);
+					// printf("id_sub_last: %d\n", id_sub_last);
 					suscriptores_temas[i].id_sub = id_sub_last;
 					suscriptores_temas[i].id_topic = id_topic_last;
 				}
@@ -579,8 +582,8 @@ int main(int argc, char *argv[]) {
 			}
 			else if(ntohs(peticion.cod_op)==BAJA){
 				// sprintf(tema, "%s",peticion.tema);
-				printf("%s\n", inet_ntoa(tcp_addr_client.sin_addr));
-				printf("%d\n", ntohs(peticion.port));
+				// printf("%s\n", inet_ntoa(tcp_addr_client.sin_addr));
+				// printf("%d\n", ntohs(peticion.port));
 				respuesta=bajaSubTopic(inet_ntoa(tcp_addr_client.sin_addr), ntohs(peticion.port), peticion.tema);
 				/* Enviar respuesta */
 				if (respuesta < 0){
