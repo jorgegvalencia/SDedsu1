@@ -11,6 +11,7 @@ int get_puerto(int *port_tcp){
 	char * endp; //puntero para la cadena no valida
 	if(getenv("PUERTO") != NULL){
 		*port_tcp=strtol(getenv("PUERTO"),&endp,10);
+		// fprintf(stdout, "PUERTO: %d\n", *port_tcp);
 	}
 	else{
 		fprintf(stderr, "Puerto de servicio del intermediario no disponible\n");
@@ -23,7 +24,7 @@ int get_info_intermediario(int *port_tcp, char **direccion){
 	char * endp; //puntero para la cadena no valida
 	if(getenv("SERVIDOR") != NULL){
 		*direccion=getenv("SERVIDOR");
-		fprintf(stdout, "SERVIDOR: %s\n", *direccion);
+		// fprintf(stdout, "SERVIDOR: %s\n", *direccion);
 	}
 	else{
 		fprintf(stderr, "Direccion del intermediario no disponible\n");
@@ -31,7 +32,7 @@ int get_info_intermediario(int *port_tcp, char **direccion){
 	}
 	if(getenv("PUERTO") != NULL){
 		*port_tcp=strtol(getenv("PUERTO"),&endp,10);
-		fprintf(stdout, "PUERTO: %d\n", *port_tcp);
+		// fprintf(stdout, "PUERTO: %d\n", *port_tcp);
 	}
 	else{
 		fprintf(stderr, "Puerto de servicio del intermediario no disponible\n");

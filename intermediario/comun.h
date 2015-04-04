@@ -13,8 +13,9 @@
 typedef struct mensaje
 {
 	int cod_op;
+	int port;
 	char tema[64];
 	char valor[64];
 } msg;
 
-void escribir_msg(int cod_op, const char *tema, const char *valor, msg *peticion);
+void escribir_msg(int cod_op, int port, const char *tema, const char *valor, msg *peticion);

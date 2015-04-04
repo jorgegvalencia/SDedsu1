@@ -8,7 +8,5 @@ int inicio_subscriptor(void (*notif_evento)(const char *, const char *),
                 void (*alta_tema)(const char *),
                 void (*baja_tema)(const char *));
 
-int atender_notificaciones();
-
 /* solo para la version avanzada */
 int fin_subscriptor();     

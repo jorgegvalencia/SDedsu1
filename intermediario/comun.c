@@ -9,13 +9,14 @@
 #include <string.h>
 #include <arpa/inet.h>
 
-void escribir_msg(int cod_op, const char *tema, const char *valor, msg *peticion){
+void escribir_msg(int cod_op, int port, const char *tema, const char *valor, msg *peticion){
 	
 	/*Inicializar estructura */
 	bzero((void*)peticion,sizeof(peticion));
 
 	/* Escribir mensaje */
 	peticion->cod_op = htons(cod_op);
+	peticion->port = htons(port);
 	sprintf(peticion->tema, "%s",(char *)tema);
 	sprintf(peticion->valor, "%s",(char *)valor);
 }

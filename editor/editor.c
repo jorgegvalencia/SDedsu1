@@ -7,7 +7,7 @@ int generar_evento(const char *tema, const char *valor) {
 	int respuesta;
 	msg nuevo_evento;
 	/* Crear evento */
-	escribir_msg(EVENTO,tema,valor,&nuevo_evento);
+	escribir_msg(EVENTO,0,tema,valor,&nuevo_evento);
 
 	/* Abrir conexion */
 	socket = abrir_conexion_tcp(0);
