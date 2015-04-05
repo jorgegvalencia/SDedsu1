@@ -44,7 +44,7 @@ int altaSubTopic(char* subscriber, int port, char* topic);
 /* Da de alta a un suscriptor al tema especificado */
 int bajaSubTopic(char* subscriber, int port, char* topic);
 /* Envia un evento a los suscriptores correspondientes */
-int push_notification(int tcp_sd, char *topic, char *valor);
+int push_notification(char *topic, char *valor);
 
 /* --------------- Variables ---------------- */
 
@@ -251,6 +251,19 @@ int getSubId(char * subscriber, int port){
 	return sub_id;
 }
 
+int getSubPort(int id_sub){
+	int i;
+	bool found = false;
+	int port=-1;
+	for(i=0; i<n_subs && !found; i++){
+		if(suscriptores[i].id_sub == id_sub){
+			found = true;
+			port = suscriptores[i].port;
+		}
+	}
+	return port;
+}
+
 char * getSubAddr(int id_sub){
 	// printf("getSubAddr: COMIENZO\n");
 	int i;
@@ -415,49 +428,63 @@ int bajaSubTopic(char *subscriber, int port, char *topic){
 	return 0;
 }
 /* Envia un evento a los suscriptores correspondientes */
-int push_notification(int tcp_sd, char *topic, char *value){
+int push_notification(char *topic, char *value){
 	int i;
 	int id_topic;
 	int id_sub;
+	int port;
+	int tcp_sr;
 	struct sockaddr_in tcp_addr_client;
 	msg nuevo_evento;
-	if(!(id_topic = getTopicId(topic))){
-		// fprintf(stderr, "Tema no valido\n");
-		return -1;
-	}
+	// if(!(id_topic = getTopicId(topic))){
+	// 	fprintf(stderr, "Tema no valido\n");
+	// 	return -1;
+	// }
 	escribir_msg(EVENTO,0,topic,value,&nuevo_evento);
 
 	id_topic = getTopicId(topic);
 
-	for(i=0;i<n_suscripciones;i++){
-		if(suscriptores_temas[i].id_topic == id_topic){
-			id_sub = suscriptores_temas[i].id_sub;
-		}
-		// if(getSubAddr(id_sub) < 0){
-		// 	continue;
-		// }
+		for(i=0;i<n_suscripciones;i++){
+			if(suscriptores_temas[i].id_topic == id_topic){
+				id_sub = suscriptores_temas[i].id_sub;
+			
+				tcp_sr = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+				if(tcp_sr < 0){
+					fprintf(stderr,"INTERMEDIARIO: Creacion del socket TCP: ERROR\n");
+					return -1;
+				}
+				// else{
+				// 	fprintf(stderr,"INTERMEDIARIO: Creacion del socket TCP: OK\n");
+				// }
+				// if(getSubAddr(id_sub) < 0){
+				// 	continue;
+				// }
+				bzero((char *) &tcp_addr_client, sizeof(tcp_addr_client));  // Inicializar estructura
+				/* Establecer parametros de la direccion TCP del intermediario */
+				tcp_addr_client.sin_family = AF_INET;
 
-		bzero((char *) &tcp_addr_client, sizeof(tcp_addr_client));  // Inicializar estructura
-		/* Establecer parametros de la direccion TCP del intermediario */
-		tcp_addr_client.sin_family = AF_INET;
-		tcp_addr_client.sin_port = htons(service_port);
+				if((port=getSubPort(id_sub)) == -1){
+					continue;
+				}
+				tcp_addr_client.sin_port = htons(port);
 
-		if(!getSubAddr(id_sub)){
-			continue;
+				if(!getSubAddr(id_sub)){
+					continue;
+				}
+				tcp_addr_client.sin_addr.s_addr = inet_addr(getSubAddr(id_sub)); // tcp_addr_interm.sin_addr.s_addr = intermediario;
+				if(connect(tcp_sr,(struct sockaddr*) &tcp_addr_client,sizeof(struct sockaddr_in))<0)
+				{
+					fprintf(stdout,"INTERMEDIARIO: Suscriptor no disponible\n");
+				// close(tcp_sd);
+				// continue;
+				}
+				/* Mandar evento a suscriptor i*/
+				escribir_msg(EVENTO,0,topic,value,&nuevo_evento);
+				/* Abrir conexion con nuevo socket tcp y puerto de notificaciones */
+				send(tcp_sr,&nuevo_evento,sizeof(struct mensaje),0);
+			}
 		}
-		tcp_addr_client.sin_addr.s_addr = inet_addr(getSubAddr(id_sub)); // tcp_addr_interm.sin_addr.s_addr = intermediario;
-
-		if(connect(tcp_sd,(struct sockaddr*) &tcp_addr_client,sizeof(struct sockaddr_in))<0)
-		{
-			fprintf(stdout,"ERROR al conectar\n");
-			// close(tcp_sd);
-			return -1;
-		}
-		/* Mandar evento a suscriptor i*/
-		escribir_msg(EVENTO,0,topic,value,&nuevo_evento);
-		/* Abrir conexion con nuevo socket tcp y puerto de notificaciones */
-		send(tcp_sd,&nuevo_evento,sizeof(struct mensaje),0);
-	}
+	close(tcp_sr);
 	return 0;
 }
 
@@ -519,9 +546,9 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr,"INTERMEDIARIO: Creacion del socket TCP: ERROR\n");
 		return -1;
 	}
-	else{
-		fprintf(stderr,"INTERMEDIARIO: Creacion del socket TCP: OK\n");
-	}
+	// else{
+	// 	fprintf(stderr,"INTERMEDIARIO: Creacion del socket TCP: OK\n");
+	// }
 
   	/* Asignacion de la direccion local (del servidor) Puerto TCP*/    
 	bzero((char *) &tcp_addr_interm, sizeof(tcp_addr_interm));
@@ -541,9 +568,9 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr,"INTERMEDIARIO: Aceptacion de peticiones: ERROR\n");
 		return -1;
 	}
-	else{
-		fprintf(stderr,"INTERMEDIARIO: Aceptacion de peticiones: OK\n");
-	}
+	// else{
+	// 	fprintf(stderr,"INTERMEDIARIO: Aceptacion de peticiones: OK\n");
+	// }
 
 	/* Recibir mensajes de alta, baja o evento */
 	printf("Numero de topics: %d \t| Numero de suscriptores: %d \t| Numero de entradas: %d |\n", n_topics, n_subs, n_suscripciones);
@@ -616,18 +643,17 @@ int main(int argc, char *argv[]) {
 				send(accept_sd,&respuesta,sizeof(int),0);
 				close(accept_sd);
 
-						// tcp_sr = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-						// if(tcp_sr < 0){
-						// 	fprintf(stderr,"INTERMEDIARIO: Creacion del socket TCP: ERROR\n");
-						// 	return -1;
-						// }
-						// else{
-						// 	fprintf(stderr,"INTERMEDIARIO: Creacion del socket TCP: OK\n");
-						// }
+				// tcp_sr = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+				// if(tcp_sr < 0){
+				// 	fprintf(stderr,"INTERMEDIARIO: Creacion del socket TCP: ERROR\n");
+				// 	return -1;
+				// }
+				// else{
+				// 	fprintf(stderr,"INTERMEDIARIO: Creacion del socket TCP: OK\n");
+				// }
 
-						// // Enviar notificacion a suscritos en el tema 
-						// respuesta = push_notification(tcp_sr, peticion.tema, peticion.valor);
-						// close(tcp_sr);
+				// Enviar notificacion a suscritos en el tema 
+				push_notification(peticion.tema, peticion.valor);
 			}
 			else{
 				fprintf(stderr, "Codigo de operacion desconocido\n");

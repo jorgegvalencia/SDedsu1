@@ -156,13 +156,11 @@ int atender_notificaciones(){
 		// conexion correcta
 		recv(s_conec,&notification,sizeof(struct mensaje),0);
 		/* Analizar peticion */
-		if(ntohl(notification.cod_op)==EVENTO){
+		// printf("%d\n",ntohs(notification.cod_op));
+		if(ntohs(notification.cod_op)==EVENTO){
 			func_notif((const char*)notification.tema, (const char*)notification.valor);
 		}
-		else{
-			// fprintf(stderr,"Codigo de operacion desconocido\n");
-			return -1;
-		}
+		// fprintf(stderr,"Codigo de operacion desconocido\n");	
 		close(s_conec);
 	}
 	return 0;
