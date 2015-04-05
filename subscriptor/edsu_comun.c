@@ -14,7 +14,7 @@ int get_puerto(int *port_tcp){
 		// fprintf(stdout, "PUERTO: %d\n", *port_tcp);
 	}
 	else{
-		fprintf(stderr, "Puerto de servicio del intermediario no disponible\n");
+		// fprintf(stderr, "Puerto de servicio del intermediario no disponible\n");
 		return -1;
 	}
 	return 0;
@@ -27,7 +27,7 @@ int get_info_intermediario(int *port_tcp, char **direccion){
 		// fprintf(stdout, "SERVIDOR: %s\n", *direccion);
 	}
 	else{
-		fprintf(stderr, "Direccion del intermediario no disponible\n");
+		// fprintf(stderr, "Direccion del intermediario no disponible\n");
 		return -1;
 	}
 	if(getenv("PUERTO") != NULL){
@@ -35,7 +35,7 @@ int get_info_intermediario(int *port_tcp, char **direccion){
 		// fprintf(stdout, "PUERTO: %d\n", *port_tcp);
 	}
 	else{
-		fprintf(stderr, "Puerto de servicio del intermediario no disponible\n");
+		// fprintf(stderr, "Puerto de servicio del intermediario no disponible\n");
 		return -1;
 	}
 	return 0;
@@ -49,7 +49,7 @@ int abrir_conexion_tcp(int puerto){
 	struct hostent *host;
 
 	if((get_info_intermediario(&port_tcp,&intermediario)) < 0){
-		fprintf(stderr, "Error al obtener la direccion de intermediario\n");
+		// fprintf(stderr, "Error al obtener la direccion de intermediario\n");
 		return -1;
 	}
 	if(puerto != 0){
@@ -62,7 +62,7 @@ int abrir_conexion_tcp(int puerto){
 	/* Creacion del socket TCP de servicio */
 	tcp_sd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if(tcp_sd < 0){
-		fprintf(stderr,"Creacion del socket TCP: ERROR\n");
+		// fprintf(stderr,"Creacion del socket TCP: ERROR\n");
 		return -1;
 	}
 	// else{
@@ -79,7 +79,7 @@ int abrir_conexion_tcp(int puerto){
 	/* Nos conectamos al intermediario */
 	if(connect(tcp_sd,(struct sockaddr*) &tcp_addr_interm,sizeof(struct sockaddr_in))<0)
 	{
-		fprintf(stdout,"ERROR %d\n",errno);
+		// fprintf(stdout,"ERROR %d\n",errno);
 		close(tcp_sd);
 		return -1;
 	}

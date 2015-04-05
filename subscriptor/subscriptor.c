@@ -41,7 +41,7 @@ int alta_subscripcion_tema(const char *tema) {
 	}
 	// if respuesta = 0 then return 0
 	/* Cerrar conexion */
-	printf("Alta correcta\n");
+	// printf("Alta correcta\n");
 	close(socket);
 	return 0;
 }
@@ -78,7 +78,7 @@ int baja_subscripcion_tema(const char *tema) {
 	}
 	// if respuesta = 0 then return 0
 	/* Cerrar conexion */
-	printf("Baja correcta\n");
+	// printf("Baja correcta\n");
 	close(socket);
 	return 0;
 }
