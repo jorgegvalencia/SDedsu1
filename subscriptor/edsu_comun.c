@@ -57,6 +57,9 @@ int abrir_conexion_tcp(int puerto){
 	}
 
 	host = gethostbyname(intermediario);
+	if(host == NULL){
+		return -1;
+	}
 	//inet_ntoa
 
 	/* Creacion del socket TCP de servicio */
