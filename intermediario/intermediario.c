@@ -75,9 +75,6 @@ int n_subs; // numero de suscriptores totales
 int n_topics; // numero de temas totales
 int n_suscripciones; // numero de entradas en la lista de suscriptores-tema
 
-// int * n_sub_topic; // numero de suscriptores por cada tema
-// int ** suscriptores_temas;
-
 EntradaNsubsTopic * n_sub_topic;
 EntradaSuscripcion * suscriptores_temas;
 EntradaTema * temas;
@@ -160,7 +157,6 @@ int delNSubTopic(int id_topic){
 
 /* Devuelve true si el suscriptor id_sub esta suscrito al tema id_topic */
 bool isSubbed(int id_sub, int id_topic){
-	// printf("isSubbed: COMIENZO\n");
 	int i = 0;
 	bool suscrito = false;
 	for(i=0;i<n_suscripciones && !suscrito;i++){
@@ -170,33 +166,26 @@ bool isSubbed(int id_sub, int id_topic){
 			}
 		}
 	}
-	// printf("isSubbed: FIN\n");
 	return suscrito;
 }
 
 /* Devuelve el identificador de tema, o -1 si no esta en la lista de temas */
 int getTopicId(char *topic){
-	// printf("getTopicId: COMIENZO\n");
 	bool found = false;
 	int topic_id = -1;
 	int i;
 	for(i=0; i<n_topics && !found; i++){
-		// printf("%s\n", temas[i].tema);
 		if(strcmp(temas[i].tema,topic) == 0){
 			found = true;
 			topic_id = temas[i].id_topic;
 		}
 	}
-	// printf("getTopicId: FIN\n");
 	return topic_id;
 }
 
 /* Añade un tema a la lista de temas y devuelve su identificador o -1 si error */
 int addTopic(char *topic){
-	// printf("addTopic: COMIENZO\n");
 	if((getTopicId(topic)) != -1){
-		// printf("Tema ya existe\n");
-		// printf("addTopic: FIN\n");
 		return -1;
 	}
 	int id_topic = n_topics;
@@ -211,14 +200,12 @@ int addTopic(char *topic){
 	temas = realloc(temas,(n_topics+1)*sizeof(struct entrada_tema));
 	if(temas == NULL){
 		fprintf(stderr, "No se pudo ubicar la memoria dinamica necesaria\n");
-		// printf("addTopic: FIN\n");
 		return -1;
 	}
 
 	n_sub_topic = realloc(n_sub_topic,(n_topics+1)*sizeof(struct num_subs_topic));
 	if(n_sub_topic == NULL){
 		fprintf(stderr, "No se pudo ubicar la memoria dinamica necesaria\n");
-		// printf("addTopic: FIN\n");
 		return -1;
 	}
 	EntradaNsubsTopic new_entrada_nsubs;
@@ -226,28 +213,22 @@ int addTopic(char *topic){
 	new_entrada_nsubs.n_subs = 0;
 
 	n_sub_topic[id_topic]= new_entrada_nsubs;
-	// printf("addTopic: FIN\n");
 	return id_topic;
 }
 
 /* Devuelve el identificador de suscriptor, o -1 si no esta en la lista de suscriptores */
 int getSubId(char * subscriber, int port){
-	// printf("getSubId: COMIENZO\n");
 	int i;
 	bool found = false;
 	int sub_id = -1;
 	for(i=0; i<n_subs && !found; i++){
-		// printf("Comparando direcciones... suscriptores[%d].addr:%s == subscriber:%s \n", i, suscriptores[i].addr, subscriber);
 		if(strcmp(suscriptores[i].addr, subscriber)==0){
-			// printf("Comparando puertos... suscriptores[%d].port:%d == port:%d\n", i, suscriptores[i].port, port);
 			if(suscriptores[i].port == port){
 				found = true;
 				sub_id = suscriptores[i].id_sub;
 			}
 		}
 	}
-	// printf("sub_id = %d\n", sub_id);
-	// printf("getSubId: FIN\n");
 	return sub_id;
 }
 
@@ -265,13 +246,11 @@ int getSubPort(int id_sub){
 }
 
 char * getSubAddr(int id_sub){
-	// printf("getSubAddr: COMIENZO\n");
 	int i;
 	bool found = false;
 	char* sub_addr = malloc(sizeof(char*));
 	if(!sub_addr){
 		return NULL;
-		// printf("getSubAddr: FIN\n");
 	}
 	for(i=0; i<n_subs && !found; i++){
 		if(suscriptores[i].id_sub == id_sub){
@@ -279,18 +258,12 @@ char * getSubAddr(int id_sub){
 			strcpy(sub_addr,suscriptores[i].addr);
 		}
 	}
-	// printf("getSubAddr: COMIENZO\n");
 	return sub_addr;
 }
 
 /* Añade un suscriptor a la lista de suscriptores y devuelve su identificador o -1 si error */
 int addSub(char *subscriber, int port){
-	// printf("addSub: COMIENZO\n");
 	/* Comprobar si suscriptor esta en la bbdd */
-	// if((getSubId(subscriber,port)) != -1){
-	// 	// fprintf(stderr, "Suscriptor ya en la lista\n");
-	// 	return -1;
-	// }
 	int id_sub = n_subs;
 	EntradaSub new_entrada;
 	/* Si no esta, añadirlo */
@@ -305,13 +278,11 @@ int addSub(char *subscriber, int port){
 	suscriptores[id_sub] = new_entrada;
 	
 	n_subs++;
-	// printf("addSub: FIN\n");
 	return id_sub;
 }
 
 /* Da de alta a un suscriptor al tema especificado */
 int altaSubTopic(char *subscriber, int port, char *topic){
-	// printf("altaSubTopic: COMIENZO\n");
 	int id_topic;
 	int id_sub;
 	EntradaSuscripcion new_entrada;
@@ -324,10 +295,7 @@ int altaSubTopic(char *subscriber, int port, char *topic){
 	/* Comprobar subscriber */
 	id_sub=getSubId(subscriber, port);
 	if(id_sub == -1){
-	// si no esta, se añade
 		if((addSub(subscriber,port)) == -1){
-			// printf("altaSubTopic: FIN\n");
-			// fprintf(stderr, "No es posible añadir el suscriptor\n");
 			return -1;
 		}
 	}
@@ -335,7 +303,6 @@ int altaSubTopic(char *subscriber, int port, char *topic){
 	/* Comprobar que no esta dado de alta */
 		if(isSubbed(id_sub,id_topic)){
 			fprintf(stderr, "INTERMEDIARIO: Suscriptor dado ya de alta\n");
-		// printf("altaSubTopic: FIN\n");
 			return -1;
 		}
 	}
@@ -344,7 +311,6 @@ int altaSubTopic(char *subscriber, int port, char *topic){
 	suscriptores_temas = realloc(suscriptores_temas,(n_suscripciones+1)*sizeof(struct subs_topic));
 	if(suscriptores_temas == NULL){
 		fprintf(stderr, "No se pudo ubicar la memoria dinamica necesaria\n");
-		// printf("altaSubTopic: FIN\n");
 		return -1;
 	}
 	if(id_sub == -1){
@@ -356,12 +322,10 @@ int altaSubTopic(char *subscriber, int port, char *topic){
 	
 	addNSubTopic(new_entrada.id_topic);
 	n_suscripciones++;
-	// printf("altaSubTopic: FIN\n");
 	return 0;
 }
 /* Da de alta a un suscriptor al tema especificado */
 int bajaSubTopic(char *subscriber, int port, char *topic){
-	// printf("bajaSubTopic: COMIENZO\n");
 	int id_topic;
 	int id_sub;
 	int id_sub_last;
@@ -370,29 +334,23 @@ int bajaSubTopic(char *subscriber, int port, char *topic){
 	id_topic=getTopicId(topic);
 	if(id_topic == -1){
 		fprintf(stderr, "INTERMEDIARIO: No existe el tema especificado\n");
-		// printf("bajaSubTopic: FIN\n");
 		return -1;
 	}
 	/* Comprobar subscriber */
 	id_sub=getSubId(subscriber,port);
 	if(id_sub == -1){
-	// si no esta, se añade
 		addSub(subscriber,port);
-		// fprintf(stderr, "Error: No es posible añadir el suscriptor\n");
-		// printf("bajaSubTopic: FIN\n");
 		return -1;
 	}
 	else{
 	/* Comprobar que esta dado de alta */
 		if(!isSubbed(id_sub,id_topic)){
 			fprintf(stderr, "INTERMEDIARIO: El suscriptor no esta dado de alta en este tema\n");
-		// printf("bajaSubTopic: FIN\n");
 			return -1;
 		}
 	}
 
 	// dar de baja
-
 	bool deleted;
 	int i;
 	for(i=0; i<n_suscripciones && !deleted; i++){
@@ -401,16 +359,12 @@ int bajaSubTopic(char *subscriber, int port, char *topic){
 				if(i != n_suscripciones && i < 2){ // si la entrada NO es la última
 					id_topic_last = suscriptores_temas[n_suscripciones-1].id_topic;
 					id_sub_last = suscriptores_temas[n_suscripciones-1].id_sub;
-					// printf("Sustituyendo suscriptores_temas[%d] por suscriptores_temas[%d]\n", i, n_suscripciones);
-					// printf("id_topic_last: %d\n", id_topic_last);
-					// printf("id_sub_last: %d\n", id_sub_last);
 					suscriptores_temas[i].id_sub = id_sub_last;
 					suscriptores_temas[i].id_topic = id_topic_last;
 				}
 				suscriptores_temas = realloc(suscriptores_temas,(n_suscripciones-1)*sizeof(struct subs_topic));
 				if(suscriptores_temas == NULL){
 					fprintf(stderr, "No se pudo ubicar la memoria dinamica necesaria\n");
-					// printf("bajaSubTopic: FIN\n");
 					return -1;
 				}
 				delNSubTopic(id_topic);
@@ -420,11 +374,9 @@ int bajaSubTopic(char *subscriber, int port, char *topic){
 	}
 	if(!deleted){
 		fprintf(stderr, "Error al dar de baja al suscriptor\n");
-		// printf("bajaSubTopic: FIN\n");
 		return -1;
 	}
 	n_suscripciones--;
-	// printf("bajaSubTopic: FIN\n");
 	return 0;
 }
 /* Envia un evento a los suscriptores correspondientes */
@@ -436,10 +388,7 @@ int push_notification(char *topic, char *value){
 	int tcp_sr;
 	struct sockaddr_in tcp_addr_client;
 	msg nuevo_evento;
-	// if(!(id_topic = getTopicId(topic))){
-	// 	fprintf(stderr, "Tema no valido\n");
-	// 	return -1;
-	// }
+
 	escribir_msg(EVENTO,0,topic,value,&nuevo_evento);
 
 	id_topic = getTopicId(topic);
@@ -453,12 +402,6 @@ int push_notification(char *topic, char *value){
 					fprintf(stderr,"INTERMEDIARIO: Creacion del socket TCP: ERROR\n");
 					return -1;
 				}
-				// else{
-				// 	fprintf(stderr,"INTERMEDIARIO: Creacion del socket TCP: OK\n");
-				// }
-				// if(getSubAddr(id_sub) < 0){
-				// 	continue;
-				// }
 				bzero((char *) &tcp_addr_client, sizeof(tcp_addr_client));  // Inicializar estructura
 				/* Establecer parametros de la direccion TCP del intermediario */
 				tcp_addr_client.sin_family = AF_INET;
@@ -475,8 +418,6 @@ int push_notification(char *topic, char *value){
 				if(connect(tcp_sr,(struct sockaddr*) &tcp_addr_client,sizeof(struct sockaddr_in))<0)
 				{
 					fprintf(stdout,"INTERMEDIARIO: Suscriptor no disponible\n");
-				// close(tcp_sd);
-				// continue;
 				}
 				/* Mandar evento a suscriptor i*/
 				escribir_msg(EVENTO,0,topic,value,&nuevo_evento);
@@ -506,15 +447,10 @@ int main(int argc, char *argv[]) {
 	/* Conexion TCP */
 	int accept_sd;
 	int tcp_sd;
-	// int tcp_sr;
 	int size;
 	struct sockaddr_in tcp_addr_interm, tcp_addr_client;
 	msg peticion;
 	int respuesta;
-
-	/* Manejo de mensajes */
-	// char tema[64];
-	// char valor[64];
 
 	/* Parsear argumentos */
 	if (argc!=3) {
@@ -546,9 +482,6 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr,"INTERMEDIARIO: Creacion del socket TCP: ERROR\n");
 		return -1;
 	}
-	// else{
-	// 	fprintf(stderr,"INTERMEDIARIO: Creacion del socket TCP: OK\n");
-	// }
 
   	/* Asignacion de la direccion local (del servidor) Puerto TCP*/    
 	bzero((char *) &tcp_addr_interm, sizeof(tcp_addr_interm));
@@ -568,9 +501,6 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr,"INTERMEDIARIO: Aceptacion de peticiones: ERROR\n");
 		return -1;
 	}
-	// else{
-	// 	fprintf(stderr,"INTERMEDIARIO: Aceptacion de peticiones: OK\n");
-	// }
 
 	/* Recibir mensajes de alta, baja o evento */
 	printf("Numero de topics: %d \t| Numero de suscriptores: %d \t| Numero de entradas: %d |\n", n_topics, n_subs, n_suscripciones);
@@ -588,9 +518,6 @@ int main(int argc, char *argv[]) {
 			printf("INTERMEDIARIO: Codigo de operacion: %d\n", ntohs(peticion.cod_op));
 			/* Analizar peticion */
 			if(ntohs(peticion.cod_op)==ALTA){
-				// sprintf(tema, "%s",peticion.tema);
-				// printf("%s\n", inet_ntoa(tcp_addr_client.sin_addr));
-				// printf("%d\n", ntohs(peticion.port));
 				respuesta=altaSubTopic(inet_ntoa(tcp_addr_client.sin_addr), ntohs(peticion.port), peticion.tema);
 				/* Enviar respuesta */
 				if (respuesta < 0){
@@ -608,9 +535,6 @@ int main(int argc, char *argv[]) {
 				printSuscripciones();
 			}
 			else if(ntohs(peticion.cod_op)==BAJA){
-				// sprintf(tema, "%s",peticion.tema);
-				// printf("%s\n", inet_ntoa(tcp_addr_client.sin_addr));
-				// printf("%d\n", ntohs(peticion.port));
 				respuesta=bajaSubTopic(inet_ntoa(tcp_addr_client.sin_addr), ntohs(peticion.port), peticion.tema);
 				/* Enviar respuesta */
 				if (respuesta < 0){
@@ -623,13 +547,10 @@ int main(int argc, char *argv[]) {
 				close(accept_sd);
 				printf("Numero de topics: %d \t| Numero de suscriptores: %d \t| Numero de entradas: %d \t|\n", n_topics, n_subs, n_suscripciones);
 				printTemas();
-				// printNsubsTopic();
 				printSubs();
 				printSuscripciones();
 			}
 			else if(ntohs(peticion.cod_op)==EVENTO){
-				// sprintf(tema, "%s",peticion.tema);
-				// sprintf(valor,"%s",peticion.valor);
 
 				/* Comprobar si tema existe */
 				if((getTopicId(peticion.tema)) != -1){
@@ -643,31 +564,12 @@ int main(int argc, char *argv[]) {
 				send(accept_sd,&respuesta,sizeof(int),0);
 				close(accept_sd);
 
-				// tcp_sr = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-				// if(tcp_sr < 0){
-				// 	fprintf(stderr,"INTERMEDIARIO: Creacion del socket TCP: ERROR\n");
-				// 	return -1;
-				// }
-				// else{
-				// 	fprintf(stderr,"INTERMEDIARIO: Creacion del socket TCP: OK\n");
-				// }
-
 				// Enviar notificacion a suscritos en el tema 
 				push_notification(peticion.tema, peticion.valor);
 			}
 			else{
 				fprintf(stderr, "Codigo de operacion desconocido\n");
 				close(accept_sd);
-			// switch(fork()){ //cambiar por threads, necesita acceso a la misma estructura de datos
-			// 	case -1:
-			// 	fprintf(stderr,"INTERMEDIARIO: Servicio no disponible\n");
-			// 	return -1;
-			// 		/* -------------- Servidor dedicado ---------------- */
-			// 	case 0:
-					
-			// 	}
-			// 	default:
-			// 	continue;
 			}
 		}
 	}
