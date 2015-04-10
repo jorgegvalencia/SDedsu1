@@ -39,14 +39,8 @@ int alta_subscripcion_tema(const char *tema) {
 
 	/* Esperar respuesta */
 	recv(socket,&respuesta,sizeof(int),0);
-	if(respuesta < 0){
+
 	/* Cerrar conexion */
-		// printf("Error al dar de alta\n");
-		// close(socket);
-		// return -1;
-	}
-	/* Cerrar conexion */
-	// printf("Alta correcta\n");
 	close(socket);
 	return respuesta;
 }
@@ -74,14 +68,8 @@ int baja_subscripcion_tema(const char *tema) {
 
 	/* Esperar respuesta */
 	recv(socket,&respuesta,sizeof(int),0);
-	if(respuesta < 0){
+
 	/* Cerrar conexion */
-		// printf("Error al dar de baja\n");
-		// close(socket);
-		// return -1;
-	}
-	/* Cerrar conexion */
-	// printf("Baja correcta\n");
 	close(socket);
 	return respuesta;
 }
@@ -99,7 +87,6 @@ int inicio_subscriptor(void (*notif_evento)(const char *, const char *),
 	/* Recibir peticion */
 	socket_notif = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if(socket_notif < 0){
-		// fprintf(stderr,"Creacion del socket TCP: ERROR\n");
 		return -1;
 	}
 
@@ -111,7 +98,6 @@ int inicio_subscriptor(void (*notif_evento)(const char *, const char *),
 	tcp_addr_sub.sin_port = htons(0);/* htons(port_tcp) Puerto para atender notificaciones */
 
 	if(bind(socket_notif, (struct sockaddr *) &tcp_addr_sub, sizeof(tcp_addr_sub)) < 0){
-		// fprintf(stderr,"SUSCRIPTOR: Asignacion del puerto para esuchar notificaciones: ERROR\n");
 		close(socket_notif);
 		exit(1);
 	}
@@ -121,10 +107,8 @@ int inicio_subscriptor(void (*notif_evento)(const char *, const char *),
 
   	/* Aceptamos conexiones por el socket */
 	if(listen(socket_notif,1)<0){
-		// fprintf(stderr,"SUSCRIPTOR: Aceptacion de peticiones: ERROR\n");
 		exit(1);
 	}
-	// fprintf(stderr,"SUSCRIPTOR: Aceptacion de peticiones: OK\n");
 
 	init = true; // anotar que la rutina inicio_subscriptor se ha ejecutado
 	/* Lanzar thread para escuchar notificaciones del intermediario */
@@ -135,21 +119,17 @@ int inicio_subscriptor(void (*notif_evento)(const char *, const char *),
 int atender_notificaciones(){
 	while(1){
 		bzero((char *) &tcp_addr_interm, sizeof(tcp_addr_interm));
-		// s_conec=malloc(sizeof(int));
 		size = sizeof(tcp_addr_interm);
 		if((s_conec=accept(socket_notif, (struct sockaddr *) &tcp_addr_interm, (socklen_t *)  &size)) < 0){
-			// fprintf(stderr,"SUSCRIPTOR: Llegada de un mensaje: ERROR\n");
 			close(socket_notif);
 			close(s_conec);
 			continue;
 		}
-		// conexion correcta
 		recv(s_conec,&notification,sizeof(struct mensaje),0);
 		/* Analizar peticion */
 		if(ntohs(notification.cod_op)==EVENTO){
 			func_notif((const char*)notification.tema, (const char*)notification.valor);
 		}
-		// fprintf(stderr,"Codigo de operacion desconocido\n");	
 		close(s_conec);
 	}
 	return 0;

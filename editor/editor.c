@@ -14,27 +14,13 @@ int generar_evento(const char *tema, const char *valor) {
 	if(socket < 0){
 		return -1;
 	}
-	// printf("EDITOR: Enviando evento a INTERMEDIARIO\n");
 	/* Enviar el evento al intermediario */
 	send(socket,&nuevo_evento,sizeof(struct mensaje),0);
 
-	// printf("EDITOR: Esperando respuesta de INTERMEDIARIO\n");
 	/* Esperar respuesta */
 	recv(socket,&respuesta,sizeof(int),0);
-	// if respuesta = -1 then return -1
-	if(respuesta < 0){
-	/* Cerrar conexion */
-		// printf("EDITOR: Evento RECHAZADO por intermediario\n");
-		close(socket);
-		return -1;
-	}
-	// if respuesta = 0 then return 0
-	else{
-	/* Cerrar conexion */
-		// printf("EDITOR: Evento ACEPTADO por intermediario\n");
-		close(socket);
-		return 0;
-	}
+	close(socket);
+	return respuesta;
 }
 
 /* solo para la version avanzada */
