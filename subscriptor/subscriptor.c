@@ -39,18 +39,16 @@ int alta_subscripcion_tema(const char *tema) {
 
 	/* Esperar respuesta */
 	recv(socket,&respuesta,sizeof(int),0);
-	// if respuesta = -1 then return -1
 	if(respuesta < 0){
 	/* Cerrar conexion */
 		// printf("Error al dar de alta\n");
-		close(socket);
-		return -1;
+		// close(socket);
+		// return -1;
 	}
-	// if respuesta = 0 then return 0
 	/* Cerrar conexion */
 	// printf("Alta correcta\n");
 	close(socket);
-	return 0;
+	return respuesta;
 }
 
 int baja_subscripcion_tema(const char *tema) {
@@ -76,18 +74,16 @@ int baja_subscripcion_tema(const char *tema) {
 
 	/* Esperar respuesta */
 	recv(socket,&respuesta,sizeof(int),0);
-	// if respuesta = -1 then return -1
 	if(respuesta < 0){
 	/* Cerrar conexion */
 		// printf("Error al dar de baja\n");
-		close(socket);
-		return -1;
+		// close(socket);
+		// return -1;
 	}
-	// if respuesta = 0 then return 0
 	/* Cerrar conexion */
 	// printf("Baja correcta\n");
 	close(socket);
-	return 0;
+	return respuesta;
 }
 int inicio_subscriptor(void (*notif_evento)(const char *, const char *),
 	void (*alta_tema)(const char *),
@@ -106,9 +102,6 @@ int inicio_subscriptor(void (*notif_evento)(const char *, const char *),
 		// fprintf(stderr,"Creacion del socket TCP: ERROR\n");
 		return -1;
 	}
-	else{
-		// fprintf(stderr,"Creacion del socket TCP: OK\n");
-	}
 
 	/* Asignacion de la direccion local (suscriptor) Puerto TCP*/    
 	bzero((char *) &tcp_addr_sub, sizeof(tcp_addr_sub));
@@ -125,17 +118,13 @@ int inicio_subscriptor(void (*notif_evento)(const char *, const char *),
 	int sa_len = sizeof(addr_tcp);
 	getsockname(socket_notif, (struct sockaddr *) &addr_tcp, (socklen_t *) &sa_len);
 	puerto_oyente = ntohs(addr_tcp.sin_port);
-	// printf("Puerto oyente: %d\n", puerto_oyente);
 
-	// fprintf(stderr,"SUSCRIPTOR: Asignacion del puerto para esuchar notificaciones: OK\n");
   	/* Aceptamos conexiones por el socket */
 	if(listen(socket_notif,1)<0){
 		// fprintf(stderr,"SUSCRIPTOR: Aceptacion de peticiones: ERROR\n");
 		exit(1);
 	}
-	else{
-		// fprintf(stderr,"SUSCRIPTOR: Aceptacion de peticiones: OK\n");
-	}
+	// fprintf(stderr,"SUSCRIPTOR: Aceptacion de peticiones: OK\n");
 
 	init = true; // anotar que la rutina inicio_subscriptor se ha ejecutado
 	/* Lanzar thread para escuchar notificaciones del intermediario */
@@ -144,7 +133,6 @@ int inicio_subscriptor(void (*notif_evento)(const char *, const char *),
 }
 
 int atender_notificaciones(){
-	
 	while(1){
 		bzero((char *) &tcp_addr_interm, sizeof(tcp_addr_interm));
 		// s_conec=malloc(sizeof(int));
@@ -158,7 +146,6 @@ int atender_notificaciones(){
 		// conexion correcta
 		recv(s_conec,&notification,sizeof(struct mensaje),0);
 		/* Analizar peticion */
-		// printf("%d\n",ntohs(notification.cod_op));
 		if(ntohs(notification.cod_op)==EVENTO){
 			func_notif((const char*)notification.tema, (const char*)notification.valor);
 		}
