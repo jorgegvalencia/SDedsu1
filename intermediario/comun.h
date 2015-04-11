@@ -8,6 +8,10 @@
 #define ALTA 0
 #define BAJA 1
 #define EVENTO 2
+#define CREAR_TEMA 3
+#define ELIMINAR_TEMA 4
+#define INIT_SUB 5
+#define FIN_SUB 6
 
 /* Mensaje de alta, baja o evento */
 typedef struct mensaje
