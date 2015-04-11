@@ -81,14 +81,12 @@ int inicio_subscriptor(void (*notif_evento)(const char *, const char *),
 	void (*baja_tema)(const char *)) {
 	
 	int socket_d;
-	int respuesta;
+	int respuesta = 0;
 	msg suscripcion;
 	pthread_t thread_id;
 	pthread_attr_t atrib_th;
 
 	func_notif = notif_evento;	// anotar funcion de notificacion de la aplicacion
-	func_notif_alta = alta_tema;
-	func_notif_baja = baja_tema;
 
 	/* Recibir peticion */
 	socket_notif = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -116,35 +114,40 @@ int inicio_subscriptor(void (*notif_evento)(const char *, const char *),
 		exit(1);
 	}
 
+	/* ------------ Avisar al intermediario ------------- */
+
+	if(alta_tema != NULL && baja_tema != NULL){
+		func_notif_alta = alta_tema;
+		func_notif_baja = baja_tema;
+
+	/* Crear mensaje de alta */
+		escribir_msg(INIT_SUB,puerto_oyente,"metatema","0",&suscripcion);
+
+	/* Abrir conexion */
+		socket_d = abrir_conexion_tcp(0);
+		if(socket_d < 0){
+			return -1;
+		}
+
+	/* Enviar la suscripcion al intermediario */
+		send(socket_d,&suscripcion,sizeof(struct mensaje),0);
+
+	/* Esperar respuesta */
+		recv(socket_d,&respuesta,sizeof(int),0);
+
+	/* Cerrar conexion */
+		close(socket_d);
+
+		if(respuesta < 0){
+			respuesta = -1;
+		}
+	}
+	/* ------------ Avisar al intermediario ------------- */
+
 	/* Lanzar thread para escuchar notificaciones del intermediario */
 	pthread_attr_init(&atrib_th);
 	pthread_attr_setdetachstate(&atrib_th, PTHREAD_CREATE_DETACHED);
 	pthread_create(&thread_id, &atrib_th, (void *)atender_notificaciones,NULL);
-
-	/* ------------ Avisar al intermediario ------------- */
-
-	/* Crear mensaje de alta */
-	escribir_msg(INIT_SUB,puerto_oyente,"metatema","0",&suscripcion);
-
-	/* Abrir conexion */
-	socket_d = abrir_conexion_tcp(0);
-	if(socket_d < 0){
-		return -1;
-	}
-
-	/* Enviar la suscripcion al intermediario */
-	send(socket_d,&suscripcion,sizeof(struct mensaje),0);
-
-	/* Esperar respuesta */
-	recv(socket_d,&respuesta,sizeof(int),0);
-
-	/* Cerrar conexion */
-	close(socket_d);
-
-	if(respuesta < 0){
-		return respuesta;
-	}
-	/* ------------ Avisar al intermediario ------------- */
 
 	init = true; // anotar que la rutina inicio_subscriptor se ha ejecutado
 	return respuesta;

@@ -226,7 +226,8 @@ int delTopic(char *topic){
 				if(i!= n_topics-1){
 				// coger la ultima entrada
 					temas[i].id_topic = temas[n_topics-1].id_topic;
-					strcpy(temas[i].tema,temas[n_topics-1].tema);			
+					strcpy(temas[i].tema,temas[n_topics-1].tema);
+					temas[i].n_subs = temas[n_topics-1].n_subs;		
 				}
 				temas = realloc(temas,(n_topics-1)*sizeof(struct entrada_tema));
 				if(suscriptores == NULL){
@@ -358,17 +359,17 @@ int altaSubTopic(char *subscriber, int port, char *topic){
 	if(id_topic == -1){
 		return -1;
 	}
-	/* Comprobar subscriber */
+	// /* Comprobar subscriber */
 	id_sub=getSubId(subscriber, port);
-	if(id_sub == -1){
-		return -1;
-	}
-	else{
+	// if(id_sub == -1){
+	// 	return -1;
+	// }
+	// else{
 	/* Comprobar que no esta dado de alta */
 		if(isSubbed(id_sub,id_topic)){
 			return -1;
 		}
-	}
+	// }
 
 	// dar de alta
 	suscriptores_temas = realloc(suscriptores_temas,(n_suscripciones+1)*sizeof(struct subs_topic));
@@ -687,6 +688,11 @@ int main(int argc, char *argv[]) {
 			/* Analizar peticion */
 			switch(ntohs(peticion.cod_op)){
 				case ALTA:
+					/* Comprobar subscriber */
+					id_sub=getSubId(inet_ntoa(tcp_addr_client.sin_addr), ntohs(peticion.port));
+					if(id_sub == -1){
+						addSub(inet_ntoa(tcp_addr_client.sin_addr), ntohs(peticion.port));
+					}
 					respuesta=altaSubTopic(inet_ntoa(tcp_addr_client.sin_addr), ntohs(peticion.port), peticion.tema);
 
 					/* Enviar respuesta */
@@ -732,6 +738,8 @@ int main(int argc, char *argv[]) {
 
 					if(id_sub < 0){
 						respuesta=-1;
+						/* Enviar respuesta */
+						send(accept_sd,&respuesta,sizeof(int),0);
 					}
 					else{
 						/* Añadir suscriptor al metatema de temas */
@@ -772,16 +780,19 @@ int main(int argc, char *argv[]) {
 
 					break;
 				case CREAR_TEMA:
-					/* Añadir tema */
-					id_topic=addTopic(peticion.tema);
-
-					if(id_topic < 0){
+					if(getTopicId(peticion.tema) > -1){
 						respuesta=-1;
 					}
-					else {
-						respuesta = 0;
+					else{
+					/* Añadir tema */
+						id_topic=addTopic(peticion.tema);
+						if(id_topic < 0){
+							respuesta=-1;
+						}
+						else {
+							respuesta = 0;
+						}
 					}
-
 					/* Enviar respuesta */
 					send(accept_sd,&respuesta,sizeof(int),0);
 					close(accept_sd);
@@ -791,8 +802,10 @@ int main(int argc, char *argv[]) {
 					printSubs();
 					printSuscripciones();
 					
-					// Enviar notificacion a suscritos en el tema 
-					push_notification("metatema", peticion.tema, CREAR_TEMA);
+					if(respuesta==0){
+						// Enviar notificacion a suscritos en el tema
+						push_notification("metatema", peticion.tema, CREAR_TEMA);						
+					}
 					break;
 				case ELIMINAR_TEMA:
 					/* Dar de baja a todos los suscriptores en el tema */
@@ -808,7 +821,9 @@ int main(int argc, char *argv[]) {
 					printSubs();
 					printSuscripciones();
 
-					push_notification("metatema", peticion.tema, ELIMINAR_TEMA);
+					if(respuesta==0){
+						push_notification("metatema", peticion.tema, ELIMINAR_TEMA);
+					}
 					break;
 				default:
 					close(accept_sd);
